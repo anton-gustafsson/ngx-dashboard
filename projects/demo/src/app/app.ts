@@ -85,6 +85,13 @@ export class App {
   }
 
   /**
+   * Navigate to responsive layout demo page
+   */
+  navigateToResponsiveLayoutDemo(): void {
+    this.router.navigate(['/responsive-layout-demo']);
+  }
+
+  /**
    * Navigate to radial gauge demo page
    */
   navigateToRadialGaugeDemo(): void {

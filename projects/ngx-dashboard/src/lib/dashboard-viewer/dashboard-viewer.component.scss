@@ -31,6 +31,26 @@
   // background-color: var(--mat-sys-surface);
 }
 
+/* Reflowed layout (`flow` layout mode, narrow viewport).
+ *
+ * The authored aspect ratio no longer applies: `--columns` is the reduced
+ * flow column count, rows are implicit, and the grid grows downwards. Height
+ * becomes intrinsic so the consumer's container scrolls instead of the cells
+ * shrinking. `--cell-size` still resolves against 100cqi, so cells stay
+ * square at the reflowed column count.
+ */
+:host(.flow) {
+  aspect-ratio: auto;
+  height: auto;
+}
+
+:host(.flow) .grid {
+  height: auto;
+  grid-template-rows: none;
+  grid-auto-rows: var(--cell-size);
+  grid-auto-flow: row dense;
+}
+
 /* Interaction rules */
 .grid-cell {
   pointer-events: none;

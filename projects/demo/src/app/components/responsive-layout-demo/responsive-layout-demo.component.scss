@@ -1,0 +1,184 @@
+.responsive-demo-container {
+  // Extra bottom padding keeps the last hint clear of the app's absolutely
+  // positioned version footer.
+  padding: 24px 24px 64px;
+  max-width: 1600px;
+  margin: 0 auto;
+
+  h1 {
+    margin: 0 0 8px;
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.intro {
+  margin: 0 0 24px;
+  max-width: 72ch;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.demo-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+  align-items: start;
+
+  // Stacked on the very screens this page is about.
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Controls ─────────────────────────────────────────────────────── */
+.controls-panel {
+  position: sticky;
+  top: 24px;
+
+  .section {
+    margin-bottom: 24px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--mat-sys-on-surface);
+    }
+  }
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.device-toggle,
+.mode-toggle {
+  width: 100%;
+
+  // Four labelled options don't fit one row in this panel; wrapping to a 2x2
+  // grid keeps every label readable instead of clipping the last option.
+  flex-wrap: wrap;
+
+  mat-button-toggle {
+    flex: 1 1 45%;
+  }
+}
+
+.device-toggle mat-icon {
+  margin-right: 4px;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  mat-slider {
+    flex: 1;
+  }
+
+  .value {
+    min-width: 5ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.readout-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+
+  &.reflowing {
+    color: var(--mat-sys-primary);
+    font-weight: 500;
+  }
+}
+
+.code {
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--mat-sys-corner-small);
+  background-color: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+code {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background-color: var(--mat-sys-surface-container-high);
+  font-size: 0.85em;
+}
+
+.code code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+
+/* ── Preview ──────────────────────────────────────────────────────── */
+.preview-panel {
+  display: flex;
+  justify-content: center;
+}
+
+.device-frame {
+  max-width: 100%;
+  // Full-strength outline (not outline-variant): the frame has to read as a
+  // device edge against a near-white page in the light themes.
+  border: 1px solid var(--mat-sys-outline);
+  border-radius: var(--mat-sys-corner-large);
+  background-color: var(--mat-sys-surface-container-low);
+  box-shadow: var(--mat-sys-elevation-level2);
+  overflow: hidden;
+
+  &--full {
+    width: 100%;
+  }
+}
+
+.device-frame-label {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background-color: var(--mat-sys-surface-container-high);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+}
+
+/* The scroll container a reflowed dashboard needs: it grows downwards rather
+ * than shrinking its cells, so something has to scroll. */
+.device-screen {
+  height: 70vh;
+  padding: 8px;
+  overflow: auto;
+  box-sizing: border-box;
+  background-color: var(--mat-sys-surface-container);
+  display: flex;
+
+  ngx-dashboard {
+    flex-shrink: 0;
+    // Auto margins center the dashboard without the flexbox overflow bug that
+    // `align-items: center` has, which would clip the top of a reflowed
+    // dashboard taller than this box and make it unreachable.
+    margin: auto;
+  }
+}

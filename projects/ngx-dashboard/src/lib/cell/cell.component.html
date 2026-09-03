@@ -11,6 +11,10 @@
   <div class="content-area">
     <ng-template #container></ng-template>
   </div>
+  @if (showWidgetBadge() && isEditMode() && !isDragging()) {
+  <!-- Identity badge: tells the author which widget sits in this cell -->
+  <div class="widget-badge" [title]="badgeTitle()">{{ badgeLabel() }}</div>
+  }
   @if (isEditMode() && !isDragging()) {
   <!-- Right resize handle -->
   <div

@@ -13,7 +13,9 @@
       [dashboardData]="dashboardConfig"
       [editMode]="editMode()"
       [reservedSpace]="dashboardReservedSpace()"
+      layoutMode="flow"
       [enableSelection]="selectMode()"
+      [showWidgetBadge]="true"
       (selectionComplete)="onSelectionComplete($event)"
     >
     </ngx-dashboard>

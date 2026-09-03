@@ -72,6 +72,8 @@ export class DashboardEditorComponent {
   rows = input.required<number>();
   columns = input.required<number>();
   gutterSize = input<string>('1em');
+  /** Forwarded to each cell; see `DashboardComponent.showWidgetBadge`. */
+  showWidgetBadge = input<boolean>(false);
 
   // Emitted when a grid resize handle commits a new size (after clamp-to-content).
   gridResized = output<GridResizeResult>();

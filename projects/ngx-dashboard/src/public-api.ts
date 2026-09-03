@@ -15,6 +15,13 @@ export type { GridResizeResult } from './lib/models/grid-resize-result';
 export type { SelectionFilterOptions } from './lib/models/selection-filter-options';
 export type { SelectionModifier } from './lib/models/selection-modifier';
 
+// Responsive layout
+export type { DashboardLayoutMode } from './lib/models/dashboard-layout';
+export {
+  DEFAULT_FLOW_MIN_CELL_WIDTH,
+  computeFlowColumns,
+} from './lib/models/dashboard-layout';
+
 // Public Services
 export { DashboardService } from './lib/services/dashboard.service';
 

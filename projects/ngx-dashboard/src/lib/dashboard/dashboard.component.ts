@@ -7,6 +7,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   input,
@@ -27,10 +28,13 @@ import { EmptyCellContextMenuService } from '../services/empty-cell-context-menu
 import { ReservedSpace } from '../models/reserved-space';
 import {
   CellIdUtils,
+  DashboardLayoutMode,
+  DEFAULT_FLOW_MIN_CELL_WIDTH,
   GridResizeResult,
   GridSelection,
   SelectionFilterOptions,
   SelectionModifier,
+  computeFlowColumns,
 } from '../models';
 
 @Component({
@@ -47,8 +51,13 @@ import {
     '[style.--gutter-size]': 'store.gutterSize()',
     '[style.--gutters]': 'store.effectiveColumns() + 1',
     '[class.is-edit-mode]': 'editMode()',
-    '[style.max-width.px]': 'viewport.constraints().maxWidth',
-    '[style.max-height.px]': 'viewport.constraints().maxHeight',
+    '[class.is-flow]': 'isFlowing()',
+    // Letterboxing to the authored aspect ratio is what makes a wide grid
+    // shrink on a narrow display, so it's dropped while reflowing — the
+    // dashboard then takes the full width and grows vertically.
+    '[style.max-width.px]': 'isFlowing() ? null : viewport.constraints().maxWidth',
+    '[style.max-height.px]':
+      'isFlowing() ? null : viewport.constraints().maxHeight',
   },
 })
 export class DashboardComponent implements OnChanges {
@@ -70,12 +79,55 @@ export class DashboardComponent implements OnChanges {
   selectionModifier = input<SelectionModifier | null>(null);
   dragThreshold = input<number>(4);
 
+  /**
+   * Show a small identity badge (widget type name, position as fallback) in
+   * each cell's top-right corner while editing, so authors can tell which
+   * widget sits where. Edit mode only; never rendered in view mode.
+   */
+  showWidgetBadge = input<boolean>(false);
+
+  /**
+   * How the grid maps onto the available space. `fixed` (default) letterboxes
+   * the authored `columns × rows` aspect ratio; `flow` reflows cells into
+   * fewer columns once the available width can't fit `columns` cells at
+   * `flowMinCellWidth`. See {@link DashboardLayoutMode}.
+   *
+   * Reflow applies to view mode only — edit mode always shows the authored
+   * grid, since drag/drop, resize and cell selection all address explicit
+   * grid coordinates.
+   */
+  layoutMode = input<DashboardLayoutMode>('fixed');
+
+  /**
+   * Smallest cell width (px) to render before `flow` mode starts dropping
+   * columns. Larger values reflow sooner (fewer, bigger cells); smaller
+   * values keep the authored column count down to narrower screens.
+   */
+  flowMinCellWidth = input<number>(DEFAULT_FLOW_MIN_CELL_WIDTH);
+
   // Component outputs
   selectionComplete = output<GridSelection>();
   gridResized = output<GridResizeResult>();
 
   // Store signals - shared by both child components
   cells = this.#store.cells;
+
+  /**
+   * Reduced column count to render, or `null` when the authored grid fits (or
+   * reflow is off / not applicable). Drives both the viewer's reflow and the
+   * `is-flow` host class.
+   */
+  protected readonly flowColumns = computed(() => {
+    if (this.layoutMode() !== 'flow' || this.editMode()) return null;
+
+    return computeFlowColumns(
+      this.#viewport.availableSpace().width,
+      this.#store.effectiveColumns(),
+      this.flowMinCellWidth()
+    );
+  });
+
+  protected readonly isFlowing = computed(() => this.flowColumns() !== null);
 
   // ViewChild references for export/import functionality
   private dashboardEditor = viewChild(DashboardEditorComponent);

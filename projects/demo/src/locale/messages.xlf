@@ -16,6 +16,11 @@
         <source>Radial Gauge Demo</source>
       </segment>
     </unit>
+    <unit id="demo.navigation.responsiveLayoutDemo">
+      <segment>
+        <source>Responsive Layout</source>
+      </segment>
+    </unit>
     <unit id="demo.navigation.colors">
       <segment>
         <source>Colors Overview</source>
@@ -229,6 +234,106 @@
     <unit id="demo.radialGaugeDemo.valueSettings">
       <segment>
         <source>Value Settings</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.controls">
+      <segment>
+        <source>Controls</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.frameFullWidth">
+      <segment>
+        <source>Full width</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.fullWidth">
+      <segment>
+        <source>Full</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.intro">
+      <segment>
+        <source> A dashboard authored for a wide screen keeps its aspect ratio by default, so on a phone it shrinks until nothing is readable. Set <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">layoutMode=&quot;flow&quot;</pc> and the cells reflow into as many columns as fit and wrap instead. </source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.laptop">
+      <segment>
+        <source>Laptop</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.layoutMode">
+      <segment>
+        <source>Layout mode</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.layoutModeHint">
+      <segment>
+        <source><pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">fixed</pc> is the default: the authored 16 × 8 grid is letterboxed into whatever space is available. </source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.letterboxed">
+      <segment>
+        <source>Letterboxed to the authored 16 × 8 aspect ratio</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.minCellWidth">
+      <segment>
+        <source> Minimum cell width </source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.minCellWidthHint">
+      <segment>
+        <source> Columns are dropped as soon as they can no longer be this wide. Raise it for fewer, bigger cells; lower it to keep the authored column count down to narrower screens. </source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.noReflowNeeded">
+      <segment>
+        <source>Fits — rendering the authored 16 columns</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.phone">
+      <segment>
+        <source>Phone</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.reflowedTo">
+      <segment>
+        <source>Reflowed to <ph id="0" equiv="INTERPOLATION" disp="{{ columns }}"/> columns</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.result">
+      <segment>
+        <source>Result</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.simulatedDevice">
+      <segment>
+        <source> Simulated device </source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.simulatedDeviceHint">
+      <segment>
+        <source> Shrinks the frame around the dashboard and declares the rest of the window as <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">reservedSpace</pc>, so the dashboard sees the frame as the space it has. Resizing your browser works the same way without any of this. </source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.tablet">
+      <segment>
+        <source>Tablet</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.title">
+      <segment>
+        <source>Responsive Layout Demo</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.usage">
+      <segment>
+        <source>Usage</source>
+      </segment>
+    </unit>
+    <unit id="demo.responsiveLayoutDemo.usageHint">
+      <segment>
+        <source> Reflow applies to view mode only — edit mode always shows the authored grid, because drag &amp; drop, cell resize and cell selection address explicit grid coordinates. A reflowed dashboard grows downwards, so give its container <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">overflow: auto</pc>. </source>
       </segment>
     </unit>
     <unit id="demo.radialGaugeDemo.valueLabel">

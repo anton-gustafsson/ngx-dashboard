@@ -1,0 +1,171 @@
+<div class="responsive-demo-container">
+  <h1 i18n="@@demo.responsiveLayoutDemo.title">Responsive Layout Demo</h1>
+
+  <p class="intro" i18n="@@demo.responsiveLayoutDemo.intro">
+    A dashboard authored for a wide screen keeps its aspect ratio by default,
+    so on a phone it shrinks until nothing is readable. Set
+    <code>layoutMode="flow"</code> and the cells reflow into as many columns as
+    fit and wrap instead.
+  </p>
+
+  <div class="demo-layout">
+    <!-- Controls -->
+    <mat-card class="controls-panel">
+      <mat-card-header>
+        <mat-card-title i18n="@@demo.responsiveLayoutDemo.controls"
+          >Controls</mat-card-title
+        >
+      </mat-card-header>
+      <mat-card-content>
+        <div class="section">
+          <h3 i18n="@@demo.responsiveLayoutDemo.simulatedDevice">
+            Simulated device
+          </h3>
+          <p class="hint" i18n="@@demo.responsiveLayoutDemo.simulatedDeviceHint">
+            Shrinks the frame around the dashboard and declares the rest of the
+            window as <code>reservedSpace</code>, so the dashboard sees the
+            frame as the space it has. Resizing your browser works the same way
+            without any of this.
+          </p>
+          <mat-button-toggle-group
+            class="device-toggle"
+            [value]="device()"
+            (change)="setDevice($event.value)"
+            [attr.aria-label]="'Simulated device'"
+          >
+            <mat-button-toggle value="phone">
+              <mat-icon>phone_iphone</mat-icon>
+              <span i18n="@@demo.responsiveLayoutDemo.phone">Phone</span>
+            </mat-button-toggle>
+            <mat-button-toggle value="tablet">
+              <mat-icon>tablet_mac</mat-icon>
+              <span i18n="@@demo.responsiveLayoutDemo.tablet">Tablet</span>
+            </mat-button-toggle>
+            <mat-button-toggle value="laptop">
+              <mat-icon>laptop</mat-icon>
+              <span i18n="@@demo.responsiveLayoutDemo.laptop">Laptop</span>
+            </mat-button-toggle>
+            <mat-button-toggle value="full">
+              <mat-icon>fit_screen</mat-icon>
+              <span i18n="@@demo.responsiveLayoutDemo.fullWidth">Full</span>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
+        <div class="section">
+          <h3 i18n="@@demo.responsiveLayoutDemo.layoutMode">Layout mode</h3>
+          <mat-button-toggle-group
+            class="mode-toggle"
+            [value]="layoutMode()"
+            (change)="setLayoutMode($event.value)"
+            [attr.aria-label]="'Layout mode'"
+          >
+            <mat-button-toggle value="fixed">
+              <code>fixed</code>
+            </mat-button-toggle>
+            <mat-button-toggle value="flow">
+              <code>flow</code>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+          <p class="hint" i18n="@@demo.responsiveLayoutDemo.layoutModeHint">
+            <code>fixed</code> is the default: the authored 16 × 8 grid is
+            letterboxed into whatever space is available.
+          </p>
+        </div>
+
+        <div class="section">
+          <h3 i18n="@@demo.responsiveLayoutDemo.minCellWidth">
+            Minimum cell width
+          </h3>
+          <div class="slider-row">
+            <mat-slider min="24" max="160" step="4" discrete>
+              <input
+                matSliderThumb
+                [value]="minCellWidth()"
+                (valueChange)="setMinCellWidth($event)"
+                [attr.aria-label]="'Minimum cell width in pixels'"
+              />
+            </mat-slider>
+            <span class="value">{{ minCellWidth() }}px</span>
+          </div>
+          <p class="hint" i18n="@@demo.responsiveLayoutDemo.minCellWidthHint">
+            Columns are dropped as soon as they can no longer be this wide.
+            Raise it for fewer, bigger cells; lower it to keep the authored
+            column count down to narrower screens.
+          </p>
+        </div>
+
+        <div class="section readout">
+          <h3 i18n="@@demo.responsiveLayoutDemo.result">Result</h3>
+          @if (flowColumns(); as columns) {
+          <p class="readout-line reflowing">
+            <mat-icon>view_module</mat-icon>
+            <span i18n="@@demo.responsiveLayoutDemo.reflowedTo"
+              >Reflowed to {{ columns }} columns</span
+            >
+          </p>
+          } @else if (layoutMode() === "flow") {
+          <p class="readout-line">
+            <mat-icon>check</mat-icon>
+            <span i18n="@@demo.responsiveLayoutDemo.noReflowNeeded"
+              >Fits — rendering the authored 16 columns</span
+            >
+          </p>
+          } @else {
+          <p class="readout-line">
+            <mat-icon>aspect_ratio</mat-icon>
+            <span i18n="@@demo.responsiveLayoutDemo.letterboxed"
+              >Letterboxed to the authored 16 × 8 aspect ratio</span
+            >
+          </p>
+          }
+        </div>
+
+        <div class="section">
+          <h3 i18n="@@demo.responsiveLayoutDemo.usage">Usage</h3>
+          <pre class="code"><code>&lt;ngx-dashboard
+  [dashboardData]="config"
+  layoutMode="flow"
+  [flowMinCellWidth]="{{ minCellWidth() }}"
+&gt;&lt;/ngx-dashboard&gt;</code></pre>
+          <p class="hint" i18n="@@demo.responsiveLayoutDemo.usageHint">
+            Reflow applies to view mode only — edit mode always shows the
+            authored grid, because drag &amp; drop, cell resize and cell
+            selection address explicit grid coordinates. A reflowed dashboard
+            grows downwards, so give its container
+            <code>overflow: auto</code>.
+          </p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Preview -->
+    <div class="preview-panel">
+      <div
+        class="device-frame"
+        [style.width.px]="frameWidth()"
+        [class.device-frame--full]="frameWidth() === null"
+      >
+        <div class="device-frame-label">
+          @if (frameWidth(); as width) {
+          <span>{{ width }}px</span>
+          } @else {
+          <span i18n="@@demo.responsiveLayoutDemo.frameFullWidth"
+            >Full width</span
+          >
+          }
+        </div>
+        <!-- The scroll container a reflowed dashboard needs. -->
+        <div class="device-screen" #screen>
+          <ngx-dashboard
+            #dashboard
+            [dashboardData]="dashboardConfig"
+            [reservedSpace]="reservedSpace()"
+            [layoutMode]="layoutMode()"
+            [flowMinCellWidth]="minCellWidth()"
+          ></ngx-dashboard>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

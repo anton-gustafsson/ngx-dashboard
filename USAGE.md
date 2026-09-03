@@ -427,6 +427,69 @@ dashboardReservedSpace = computed((): ReservedSpace => ({
 }));
 ```
 
+### Widget Identity Badge (edit mode)
+
+`showWidgetBadge` puts a small badge in each cell's top-right corner while
+editing, so an author can tell which widget sits where. It shows the widget
+type's display name (`WidgetFactory.name`), falling back to the cell position
+when the widget type can't be resolved; the tooltip carries the type id and the
+widget instance id. View mode never renders it.
+
+```html
+<ngx-dashboard
+  [dashboardData]="dashboardConfig"
+  [editMode]="editMode()"
+  [showWidgetBadge]="true"
+></ngx-dashboard>
+```
+
+Default `false`.
+
+### Responsive Layout (mobile / tablet)
+
+By default (`layoutMode="fixed"`) the dashboard keeps its authored
+`columns × rows` aspect ratio and is letterboxed into the space available.
+A wide dashboard on a phone therefore shrinks until every cell is unreadable.
+
+Set `layoutMode="flow"` to let it reflow instead:
+
+```html
+<ngx-dashboard
+  #dashboard
+  [dashboardData]="dashboardConfig"
+  [editMode]="editMode()"
+  layoutMode="flow"
+  [flowMinCellWidth]="64"
+></ngx-dashboard>
+```
+
+- Above the threshold nothing changes — the layout is byte-for-byte the fixed
+  layout, so desktop rendering is untouched.
+- Once the available width can't fit `columns` cells at `flowMinCellWidth`
+  (default `64` px), cells reflow in reading order (top-left → bottom-right)
+  into as many columns as *do* fit, wrapping onto new rows. The dashboard
+  keeps full width and grows downwards, so **the container you put
+  `<ngx-dashboard>` in needs `overflow: auto`** to scroll.
+- Cells wider than the reflowed grid are clamped to full width; row spans are
+  preserved. Empty gaps in the authored layout are packed away.
+- Raise `flowMinCellWidth` to reflow sooner (fewer, bigger cells); lower it to
+  keep the authored column count down to narrower screens.
+- The available width is the viewport minus `reservedSpace`, not the measured
+  element width (measuring would oscillate, since reflowing changes the
+  element's own width). If you place the dashboard inside a narrower column,
+  declare that column in `reservedSpace` so reflow triggers at the right
+  point.
+
+Reflow applies to **view mode only**. Edit mode always shows the authored grid,
+because drag & drop, cell resize and cell selection all address explicit grid
+coordinates. Cell selection (`enableSelection`) is likewise suppressed while
+reflowing, for the same reason.
+
+> If you center the dashboard with `align-items: center` / `justify-content:
+> center` on a scrolling flex container, switch to `margin: auto` on
+> `ngx-dashboard`. Flexbox clips (and makes unreachable) the leading edge of a
+> centered item that overflows its scroll container.
+
 ## Creating Custom Widgets
 
 ### Complete Custom Widget Example

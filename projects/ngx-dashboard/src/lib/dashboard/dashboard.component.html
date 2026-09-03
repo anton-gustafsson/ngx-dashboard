@@ -6,6 +6,7 @@
     [rows]="store.rows()"
     [columns]="store.columns()"
     [gutterSize]="store.gutterSize()"
+    [showWidgetBadge]="showWidgetBadge()"
     (gridResized)="gridResized.emit($event)"
   ></ngx-dashboard-editor>
   } @else {
@@ -14,6 +15,7 @@
     [rows]="store.rows()"
     [columns]="store.columns()"
     [gutterSize]="store.gutterSize()"
+    [flowColumns]="flowColumns()"
     [enableSelection]="enableSelection()"
     [selectionModifier]="selectionModifier()"
     [dragThreshold]="dragThreshold()"

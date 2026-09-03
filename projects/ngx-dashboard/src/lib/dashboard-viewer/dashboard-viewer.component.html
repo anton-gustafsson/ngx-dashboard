@@ -1,6 +1,6 @@
 <!-- Dashboard viewer - read-only grid -->
 <div class="grid top-grid" #gridElement>
-  @for (cell of cells(); track cell.widgetId) {
+  @for (cell of renderCells(); track cell.widgetId) {
     <lib-cell
       class="grid-cell"
       [widgetId]="cell.widgetId"
@@ -11,6 +11,7 @@
       [column]="cell.col"
       [rowSpan]="cell.rowSpan"
       [colSpan]="cell.colSpan"
+      [autoFlow]="isFlowing()"
       [flat]="cell.flat"
       [widgetFactory]="cell.widgetFactory"
       [widgetState]="cell.widgetState"
@@ -20,7 +21,7 @@
 </div>
 
 <!-- Selection overlay grid - mirror of main grid for cell selection -->
-@if (enableSelection()) {
+@if (enableSelection() && !isFlowing()) {
   <div class="selection-overlay-grid" [class.armed]="armed()">
     @for (row of rowNumbers(); track row) {
       @for (col of colNumbers(); track col) {

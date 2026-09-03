@@ -10,8 +10,21 @@
   // background-color: var(--mat-sys-surface-container);
 }
 
+/* Reflowed layout: the authored aspect ratio is replaced by the intrinsic
+ * height of the wrapped grid, so the dashboard fills the width and overflows
+ * downwards for the consumer's container to scroll. */
+:host(.is-flow) {
+  aspect-ratio: auto;
+  max-width: none;
+  max-height: none;
+}
+
 .grid-container {
   position: relative;
   width: 100%;
   height: 100%;
+}
+
+:host(.is-flow) .grid-container {
+  height: auto;
 }

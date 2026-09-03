@@ -25,6 +25,7 @@ import {
   CellId,
   CellIdUtils,
   WidgetId,
+  WidgetIdUtils,
   DragData,
   WidgetFactory,
   Widget,
@@ -77,6 +78,8 @@ export class CellComponent {
   widgetFactory = input<WidgetFactory | undefined>(undefined);
   widgetState = input<unknown | undefined>(undefined);
   isEditMode = input<boolean>(false);
+  /** Render the edit-mode identity badge in the top-right corner. */
+  showWidgetBadge = input<boolean>(false);
   flat = input<boolean | undefined>(undefined);
 
   row = model.required<number>();
@@ -84,6 +87,12 @@ export class CellComponent {
   rowSpan = input<number>(1);
   colSpan = input<number>(1);
   draggable = input<boolean>(false);
+  /**
+   * Let the grid auto-place this cell (span-only placement) instead of
+   * pinning it to `row`/`column`. Set by the viewer when the dashboard is
+   * reflowing into fewer columns than were authored.
+   */
+  autoFlow = input<boolean>(false);
 
   dragStart = output<DragData>();
   dragEnd = output<void>();
@@ -123,12 +132,35 @@ export class CellComponent {
 
   isDragging = signal(false);
 
-  readonly gridRowStyle = computed(
-    () => `${this.row()} / span ${this.rowSpan()}`
+  // In auto-flow mode the cell only declares its *size*; the browser picks the
+  // track. Explicit `row / span` placement would reintroduce the authored
+  // (too wide) grid and defeat the reflow.
+  readonly gridRowStyle = computed(() =>
+    this.autoFlow()
+      ? `span ${this.rowSpan()}`
+      : `${this.row()} / span ${this.rowSpan()}`
   );
-  readonly gridColumnStyle = computed(
-    () => `${this.column()} / span ${this.colSpan()}`
+  readonly gridColumnStyle = computed(() =>
+    this.autoFlow()
+      ? `span ${this.colSpan()}`
+      : `${this.column()} / span ${this.colSpan()}`
   );
+
+  /**
+   * Short label for the edit-mode identity badge: the widget type's display
+   * name when the factory resolved, otherwise the grid position so an
+   * unresolved cell is still identifiable.
+   */
+  readonly badgeLabel = computed(
+    () => this.widgetFactory()?.name ?? CellIdUtils.toString(this.cellId())
+  );
+
+  /** Full identity (type + instance id) for the badge tooltip. */
+  readonly badgeTitle = computed(() => {
+    const factory = this.widgetFactory();
+    const id = WidgetIdUtils.toString(this.widgetId());
+    return factory ? `${factory.name} (${factory.widgetTypeid}) — ${id}` : id;
+  });
 
   isResizing = computed(() => {
     const resizeData = this.#store.resizeData();

@@ -40,9 +40,10 @@ const MODIFIER_KEY: Record<SelectionModifier, string> = {
   styleUrl: './dashboard-viewer.component.scss',
   host: {
     '[style.--rows]': 'rows()',
-    '[style.--columns]': 'columns()',
+    '[style.--columns]': 'renderColumns()',
     '[style.--gutter-size]': 'gutterSize()',
     '[style.--gutters]': 'gutters()',
+    '[class.flow]': 'isFlowing()',
   },
 })
 export class DashboardViewerComponent {
@@ -56,7 +57,20 @@ export class DashboardViewerComponent {
   rows = input.required<number>();
   columns = input.required<number>();
   gutterSize = input<string>('1em');
-  gutters = computed(() => this.columns() + 1);
+
+  /**
+   * Number of columns to actually render, or `null` to render the authored
+   * `columns`. Set by the parent dashboard when the available width is too
+   * narrow for the authored grid; cells then reflow into this many columns
+   * and wrap, and the viewer grows vertically instead of shrinking.
+   *
+   * `columns` stays the authored value (it's what gets written back to the
+   * store), so this is a purely presentational override.
+   */
+  flowColumns = input<number | null>(null);
+  readonly renderColumns = computed(() => this.flowColumns() ?? this.columns());
+  readonly isFlowing = computed(() => this.flowColumns() !== null);
+  gutters = computed(() => this.renderColumns() + 1);
 
   // Selection feature
   enableSelection = input<boolean>(false);
@@ -74,6 +88,26 @@ export class DashboardViewerComponent {
 
   // store signals - read-only
   cells = this.#store.cells;
+
+  /**
+   * Cells in the order the grid should place them.
+   *
+   * Fixed layout renders straight from the store (placement is explicit, so
+   * order is irrelevant). While flowing, auto-placement consumes the DOM
+   * order, so cells are sorted into reading order and any cell wider than the
+   * reflowed grid is clamped to full width.
+   */
+  readonly renderCells = computed(() => {
+    const cells = this.cells();
+    const flowColumns = this.flowColumns();
+    if (flowColumns === null) return cells;
+
+    return [...cells]
+      .sort((a, b) => a.row - b.row || a.col - b.col)
+      .map((cell) =>
+        cell.colSpan > flowColumns ? { ...cell, colSpan: flowColumns } : cell
+      );
+  });
 
   // Selection state
   isSelecting = signal(false);
@@ -93,6 +127,9 @@ export class DashboardViewerComponent {
    */
   protected readonly armed = computed(() => {
     if (!this.enableSelection()) return false;
+    // Grid coordinates don't correspond to what's on screen while reflowing,
+    // so a rectangular selection would be meaningless.
+    if (this.isFlowing()) return false;
     if (this.selectionModifier() === null) return true;
     return this.#modifierHeld() || this.isSelecting();
   });
