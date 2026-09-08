@@ -1,0 +1,113 @@
+<!-- dashboard-toolbar.component.html -->
+@if (visible()) {
+<mat-toolbar
+  class="dashboard-toolbar"
+  role="group"
+  i18n-aria-label="@@ngx.dashboard.toolbar.ariaLabel"
+  aria-label="Dashboard grid controls"
+>
+  <!-- One shape for every control: its name on top, the control itself under
+       it. The captions are what make the strip readable at a glance; the
+       tooltips only add detail. The rule separating two controls is a CSS
+       sibling selector, so it lands wherever two of them actually render. -->
+  @if (settings().showGridSize) {
+  <div class="control">
+    <span class="control-label" i18n="@@ngx.dashboard.toolbar.rows.label"
+      >Rows</span
+    >
+    <mat-form-field class="grid-size-field" subscriptSizing="dynamic">
+      <input
+        matInput
+        type="number"
+        inputmode="numeric"
+        autocomplete="off"
+        min="1"
+        step="1"
+        [max]="settings().maxRows"
+        [value]="rows()"
+        (change)="onRowsChange($any($event.target))"
+        i18n-aria-label="@@ngx.dashboard.toolbar.rows.ariaLabel"
+        aria-label="Number of dashboard grid rows"
+      />
+    </mat-form-field>
+  </div>
+
+  <div class="control">
+    <span class="control-label" i18n="@@ngx.dashboard.toolbar.columns.label"
+      >Columns</span
+    >
+    <mat-form-field class="grid-size-field" subscriptSizing="dynamic">
+      <input
+        matInput
+        type="number"
+        inputmode="numeric"
+        autocomplete="off"
+        min="1"
+        step="1"
+        [max]="settings().maxColumns"
+        [value]="columns()"
+        (change)="onColumnsChange($any($event.target))"
+        i18n-aria-label="@@ngx.dashboard.toolbar.columns.ariaLabel"
+        aria-label="Number of dashboard grid columns"
+      />
+    </mat-form-field>
+  </div>
+  }
+
+  <!-- Writes straight through to the dashboard: the grid reflows under the
+       thumb, which is the whole point of a slider here rather than a number. -->
+  @if (settings().showGutterSlider) {
+  <div class="control">
+    <span
+      class="control-label"
+      i18n="@@ngx.dashboard.toolbar.gutter.label"
+      i18n-matTooltip="@@ngx.dashboard.toolbar.gutter.tooltip"
+      matTooltip="Space between dashboard cells"
+      matTooltipPosition="above"
+      >Gutter</span
+    >
+    <div class="control-body">
+      <mat-slider
+        class="gutter-slider"
+        [min]="0"
+        [max]="gutterMax()"
+        [step]="gutterStep()"
+      >
+        <input
+          matSliderThumb
+          [value]="gutter().value"
+          (input)="onGutterInput($any($event.target).valueAsNumber)"
+          i18n-aria-label="@@ngx.dashboard.toolbar.gutter.ariaLabel"
+          aria-label="Gutter size between dashboard cells"
+        />
+      </mat-slider>
+      <span class="gutter-value">{{ gutterLabel() }}</span>
+    </div>
+  </div>
+  }
+
+  <!-- A switch, not an icon button: under a caption it reads as the on/off
+       state it is, and Material gives it the switch role for free. -->
+  @if (settings().showBadgeToggle) {
+  <div class="control">
+    <span
+      class="control-label"
+      i18n="@@ngx.dashboard.toolbar.badges.label"
+      i18n-matTooltip="@@ngx.dashboard.toolbar.badges.tooltip"
+      matTooltip="Show which widget sits in each cell"
+      matTooltipPosition="above"
+      >Badges</span
+    >
+    <div class="control-body">
+      <mat-slide-toggle
+        class="badge-toggle"
+        [checked]="badgesShown()"
+        (change)="onBadgeToggle($event.checked)"
+        i18n-aria-label="@@ngx.dashboard.toolbar.badges.ariaLabel"
+        aria-label="Show widget type badges on cells"
+      ></mat-slide-toggle>
+    </div>
+  </div>
+  }
+</mat-toolbar>
+}

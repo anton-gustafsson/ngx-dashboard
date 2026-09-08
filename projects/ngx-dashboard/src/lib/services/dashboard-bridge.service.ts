@@ -1,11 +1,15 @@
 // dashboard-bridge.service.ts
 import { Injectable, computed, signal } from '@angular/core';
 import { DashboardStore } from '../store/dashboard-store';
-import { DragData } from '../models';
+import { DashboardViewportService } from './dashboard-viewport.service';
+import { DragData, GridResizeResult } from '../models';
 
 interface DashboardInstance {
   store: InstanceType<typeof DashboardStore>;
   dimensions: () => { width: number; height: number };
+  // Absent for a dashboard registered without one (tests, and any caller that
+  // predates it): chrome claims against such a dashboard are no-ops.
+  viewport?: DashboardViewportService;
 }
 
 /**
@@ -22,7 +26,10 @@ export class DashboardBridgeService {
   /**
    * Register a dashboard store instance using its dashboard ID
    */
-  registerDashboard(store: InstanceType<typeof DashboardStore>): void {
+  registerDashboard(
+    store: InstanceType<typeof DashboardStore>,
+    viewport?: DashboardViewportService
+  ): void {
     const dashboardId = store.dashboardId();
     
     // If dashboard ID is not set yet, we'll register later when it's available
@@ -34,7 +41,8 @@ export class DashboardBridgeService {
       const newMap = new Map(dashboards);
       newMap.set(dashboardId, {
         store,
-        dimensions: store.gridCellDimensions
+        dimensions: store.gridCellDimensions,
+        viewport
       });
       return newMap;
     });
@@ -98,6 +106,66 @@ export class DashboardBridgeService {
   }
 
   /**
+   * Row/column counts of the first available dashboard, or null when none is
+   * registered. Same "first available dashboard" convention as `gutterSize`.
+   */
+  readonly gridSize = computed(() => {
+    const [first] = Array.from(this.dashboards().values());
+    if (!first) return null;
+    return { rows: first.store.rows(), columns: first.store.columns() };
+  });
+
+  /**
+   * Resize the first available dashboard's grid. Returns the applied size
+   * (clamp-to-content may snap it up), or null when no dashboard is registered.
+   * Counterpart to `gridSize`.
+   */
+  setGridSize(rows: number, columns: number): GridResizeResult | null {
+    const [first] = Array.from(this.dashboards().values());
+    return first ? first.store.setGridSize(rows, columns) : null;
+  }
+
+  /**
+   * Whether the first available dashboard shows its cells' identity badges, or
+   * null when none is registered. Same "first available dashboard" convention
+   * as `gutterSize`.
+   */
+  readonly showWidgetBadge = computed(() => {
+    const [first] = Array.from(this.dashboards().values());
+    return first ? first.store.showWidgetBadge() : null;
+  });
+
+  /**
+   * Toggle the identity badges on the first available dashboard. No-op when
+   * none is registered. Counterpart to `showWidgetBadge`.
+   */
+  setShowWidgetBadge(showWidgetBadge: boolean): void {
+    const [first] = Array.from(this.dashboards().values());
+    first?.store.setShowWidgetBadge(showWidgetBadge);
+  }
+
+  /**
+   * Claim vertical space below the first available dashboard's grid, so it
+   * letterboxes smaller instead of being covered by a surface docked under it.
+   * Lets a docked control reserve its own height, rather than making the host
+   * measure it and do the arithmetic. Same "first available dashboard"
+   * convention as `gridSize`.
+   */
+  claimChromeHeight(owner: object, height: number): void {
+    const [first] = Array.from(this.dashboards().values());
+    first?.viewport?.claimChromeHeight(owner, height);
+  }
+
+  /** Drops `owner`'s claim on every dashboard. Counterpart to `claimChromeHeight`. */
+  releaseChromeHeight(owner: object): void {
+    // Released everywhere rather than on the first dashboard only: the claim may
+    // have been made while a different dashboard was first in the map.
+    for (const dashboard of this.dashboards().values()) {
+      dashboard.viewport?.releaseChromeHeight(owner);
+    }
+  }
+
+  /**
    * Start drag operation on the first available dashboard
    * (Widget lists need some dashboard to coordinate with during drag)
    */
@@ -136,8 +204,11 @@ export class DashboardBridgeService {
   /**
    * Update registration for a dashboard store when its ID becomes available
    */
-  updateDashboardRegistration(store: InstanceType<typeof DashboardStore>): void {
-    this.registerDashboard(store);
+  updateDashboardRegistration(
+    store: InstanceType<typeof DashboardStore>,
+    viewport?: DashboardViewportService
+  ): void {
+    this.registerDashboard(store, viewport);
   }
 
   /**

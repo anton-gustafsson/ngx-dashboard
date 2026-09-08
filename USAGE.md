@@ -335,27 +335,114 @@ export class DashboardPageComponent {
   class="widget-list"
   [collapsed]="isWidgetListCollapsed()"
   [enableSearchBox]="true"
-  [enableGutterSlider]="true"
 ></ngx-dashboard-widget-list>
 ```
 
 | Input | Default | Description |
 | --- | --- | --- |
-| `collapsed` | `false` | Renders the list as an icon-only rail. Names, descriptions, the search box and the gutter slider are hidden; each widget keeps a tooltip. |
+| `collapsed` | `false` | Renders the list as an icon-only rail. Names, descriptions and the search box are hidden; each widget keeps a tooltip. |
 | `enableSearchBox` | `false` | Shows a free-text filter above the list, matching widget name, description and widget type id (case insensitive) |
-| `enableGutterSlider` | `false` | Docks a slider to the list's bottom-left corner that drives the dashboard's gutter size |
 
-The gutter slider floats over the list and sticks to its bottom-left corner, so
-it stays reachable however long the list runs. It applies to the first
-registered dashboard — the same one widgets are dragged onto — and writes
-through on every input, so the grid reflows under the thumb. It keeps the unit
-the dashboard already uses (`px` 0–48, `em`/`rem` 0–3); a gutter authored in any
-other unit (`%`, `calc()`) falls back to the `0.5em` default. The slider is
-hidden until a dashboard registers, and in the icon-only rail.
+The gutter is set from the grid toolbar below, not from this list.
 
 Widgets are grouped by their optional `WidgetMetadata.group`; grouped sections
 can be collapsed, and ungrouped widgets are listed last. While a filter is
 active every group stays expanded so matches are never hidden.
+
+### Grid Toolbar
+
+`ngx-dashboard-toolbar` is a strip of grid controls — row and column number
+inputs, and a gutter slider — meant to be docked below a dashboard. It is a
+sibling of `<ngx-dashboard>`, not a child: the dashboard is a letterboxed
+aspect-ratio box with no room for chrome inside it.
+
+```html
+<!-- A column stack is all the layout it needs; the strip brings its own gap
+     and reserves its own height. -->
+<div class="dashboard-wrapper">
+  <ngx-dashboard
+    #dashboard
+    [dashboardData]="dashboardConfig"
+    [editMode]="editMode()"
+    [reservedSpace]="dashboardReservedSpace()"
+  ></ngx-dashboard>
+
+  @if (editMode()) {
+    <ngx-dashboard-toolbar
+      [config]="toolbarConfig()"
+      (gridResized)="onGridResized($event)"
+    ></ngx-dashboard-toolbar>
+  }
+</div>
+```
+
+```typescript
+import { DashboardToolbarConfig } from '@dragonworks/ngx-dashboard';
+
+// An object rather than a flag, so the same setting picks the controls and
+// their ceilings. Unset fields fall back to DEFAULT_DASHBOARD_TOOLBAR_CONFIG.
+protected readonly toolbarConfig = signal<DashboardToolbarConfig>({
+  enabled: true,
+  showGridSize: true,
+  showGutterSlider: true,
+  maxRows: 32,
+  maxColumns: 48,
+});
+```
+
+| `DashboardToolbarConfig` | Default | Description |
+| --- | --- | --- |
+| `enabled` | — | Whether the toolbar renders at all (required) |
+| `showGridSize` | `true` | Shows the row and column number inputs |
+| `showGutterSlider` | `true` | Shows the gutter size slider |
+| `showBadgeToggle` | `true` | Shows a toggle for the cells' identity badges |
+| `maxRows` | `64` | Upper bound of the row input; the lower bound is always 1 |
+| `maxColumns` | `64` | Upper bound of the column input |
+
+The toolbar drives the first registered dashboard — the same one widgets are
+dragged onto — and is hidden until one registers. The row and column fields
+commit on `change` (not per keystroke) and then show the size that was actually
+applied: shrinking is floored by the dashboard's clamp-to-content policy, so a
+size that would orphan a widget snaps up. `gridResized` emits the applied size
+whenever a commit changed the grid, matching `DashboardComponent.gridResized`.
+The gutter slider writes through on every input, so the grid reflows under the
+thumb. It keeps the unit the dashboard already uses, in coarse steps a gutter is
+actually judged in (`px` 0–48 by 4, `em`/`rem` 0–3 by 0.25); a gutter authored
+in any other unit (`%`, `calc()`) falls back to the `0.5em` default.
+
+The badge toggle drives the same state as the dashboard's own
+`showWidgetBadge` input (see below), so either can switch the badges and the
+toggle always shows what is actually rendered.
+
+The strip measures itself and claims that height from the dashboard's viewport
+budget, so the grid letterboxes smaller instead of being covered — nothing to
+add to `reservedSpace`, and nothing to measure in the host. The claim is dropped
+as soon as the strip stops rendering.
+
+Being a standalone component, it is only in your bundle if you import it: the
+dashboard does not reference it, so `@angular/material`'s toolbar and slider
+come along only for hosts that use the strip.
+
+### Widget Identity Badges
+
+While editing, each cell can show a small badge in its top-right corner naming
+the widget that sits there — useful once a dashboard has several charts of the
+same shape. It is an authoring aid: never rendered in view mode, nor on a cell
+being dragged, and it takes no pointer events, so drag, resize and the context
+menu keep working through it.
+
+Badges are on by default; turn them off with:
+
+```html
+<ngx-dashboard [showWidgetBadge]="false" ...></ngx-dashboard>
+```
+
+The badge shows the widget type's display name, falling back to the cell's grid
+position when the type has not resolved (an unregistered widget, say); its
+tooltip carries the full identity — name, widget type id and instance id.
+
+The input seeds the state; the grid toolbar's badge toggle flips it live, and
+both read back the same value.
 
 ## Widget Registration
 

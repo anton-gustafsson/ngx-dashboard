@@ -8,6 +8,17 @@ export { NGX_DASHBOARD_VERSION } from './lib/version';
 // Main dashboard components
 export { DashboardComponent } from './lib/dashboard/dashboard.component';
 export { WidgetListComponent } from './lib/widget-list/widget-list.component';
+export { DashboardToolbarComponent } from './lib/dashboard-toolbar/dashboard-toolbar.component';
+
+// Dashboard toolbar configuration
+export type {
+  DashboardToolbarConfig,
+  ResolvedDashboardToolbarConfig,
+} from './lib/models/dashboard-toolbar-config';
+export {
+  DEFAULT_DASHBOARD_TOOLBAR_CONFIG,
+  resolveDashboardToolbarConfig,
+} from './lib/models/dashboard-toolbar-config';
 
 // Dashboard viewer types (for selection feature)
 export type { GridSelection } from './lib/models/grid-selection';

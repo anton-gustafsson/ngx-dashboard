@@ -93,6 +93,10 @@ export class DashboardEditorComponent {
   effectiveRows = this.#store.effectiveRows;
   effectiveColumns = this.#store.effectiveColumns;
 
+  // Identity badges are shared state: the host's input on the dashboard and the
+  // grid toolbar's toggle both land in the store.
+  showWidgetBadge = this.#store.showWidgetBadge;
+
   // Hide grid resize handles while a widget drag is in progress to avoid
   // conflicting gestures.
   isDragActive = this.#store.isDragActive;

@@ -67,6 +67,17 @@ export class DashboardComponent implements OnChanges {
   editMode = input<boolean>(false);
   reservedSpace = input<ReservedSpace>();
   enableSelection = input<boolean>(false);
+
+  /**
+   * Show a small identity badge (widget type name, grid position as fallback)
+   * in each cell's top-right corner while editing, so authors can tell which
+   * widget sits where. Edit mode only; never rendered in view mode. The grid
+   * toolbar can toggle it live from here.
+   *
+   * On by default: while editing, knowing which widget a cell holds is the
+   * common need. Pass `false` to author without them.
+   */
+  showWidgetBadge = input<boolean>(true);
   selectionModifier = input<SelectionModifier | null>(null);
   dragThreshold = input<number>(4);
 
@@ -99,8 +110,10 @@ export class DashboardComponent implements OnChanges {
       const data = this.dashboardData();
       if (data && !this.#isInitialized) {
         this.#store.loadDashboard(data);
-        // Register with bridge service after dashboard ID is set
-        this.#bridge.updateDashboardRegistration(this.#store);
+        // Register with bridge service after dashboard ID is set. The viewport
+        // service goes along so surfaces docked outside the grid (the toolbar)
+        // can reserve their own height.
+        this.#bridge.updateDashboardRegistration(this.#store, this.#viewport);
         this.#isInitialized = true;
       }
     });
@@ -111,6 +124,13 @@ export class DashboardComponent implements OnChanges {
       untracked(() => {
         this.#store.setEditMode(editMode);
       });
+    });
+
+    // Seed the store from the input. Only on change, so a later toggle from
+    // the grid toolbar isn't overwritten.
+    effect(() => {
+      const showWidgetBadge = this.showWidgetBadge();
+      untracked(() => this.#store.setShowWidgetBadge(showWidgetBadge));
     });
 
     // Sync reserved space input with viewport service

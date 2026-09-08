@@ -1,0 +1,116 @@
+// dashboard-toolbar.component.scss
+:host {
+  display: block;
+  // The strip owns the gap between itself and the grid it docks under, and
+  // includes it in the height it claims from the dashboard's viewport budget —
+  // so a host gets correct spacing without setting any.
+  margin-block-start: var(--mat-sys-spacing-3, 12px);
+}
+
+// Material's standard toolbar is an app bar: 64px tall and painted in the app's
+// own surface. This one is a control strip docked to a dashboard, so it is
+// shortened to the height its controls need and given the rounded container
+// surface the dashboard and widget list already sit on.
+mat-toolbar.dashboard-toolbar {
+  --mat-toolbar-standard-height: auto;
+  --mat-toolbar-mobile-height: auto;
+  --mat-toolbar-container-background-color: var(
+    --mat-sys-surface-container-high,
+    #ececec
+  );
+  --mat-toolbar-container-text-color: var(--mat-sys-on-surface, #1c1c1c);
+
+  display: flex;
+  // Never wraps: a height that depends on the strip's width feeds back into the
+  // height it claims from the dashboard, which resizes the strip again. A
+  // cramped strip scrolls instead.
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  align-items: stretch;
+  gap: var(--mat-sys-spacing-4, 16px);
+  padding: var(--mat-sys-spacing-2, 8px) var(--mat-sys-spacing-4, 16px);
+  border-radius: var(--mat-sys-corner-large, 16px);
+  box-shadow: var(--mat-sys-elevation-level1, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+// Caption on top, control under it — the same shape for every control, so the
+// strip reads as a row of labelled things rather than a row of widgets.
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mat-sys-spacing-1, 4px);
+  min-width: 0;
+
+  // Separates two neighbouring controls. A sibling rule rather than markup, so
+  // it appears between whichever controls the config actually renders, and
+  // never before the first or after the last.
+  & + .control {
+    padding-inline-start: var(--mat-sys-spacing-4, 16px);
+    border-inline-start: 1px solid
+      color-mix(in srgb, var(--mat-sys-outline-variant, #c7c7c7) 60%, transparent);
+  }
+}
+
+// Names the control it sits above, so no one has to hover it to find out what
+// it does. Small, uppercase and in the variant colour: a caption, not a form
+// label competing with the control below it.
+.control-label {
+  color: var(--mat-sys-on-surface-variant, #5f5f5f);
+  font-size: var(--mat-sys-label-small-size, 0.6875rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+// For controls that pair with a readout, keeping them on the caption's baseline
+// grid. Height matches the number fields so every control in the strip lines up.
+.control-body {
+  display: flex;
+  align-items: center;
+  gap: var(--mat-sys-spacing-2, 8px);
+  min-height: 40px;
+}
+
+// Wide enough for three digits plus the browser's stepper, narrow enough that
+// both fields and the slider still fit one line on a modest viewport. Shortened
+// from Material's default 56px: with the caption above, the field's own label
+// row is dead space.
+.grid-size-field {
+  width: 84px;
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 8px;
+
+  // The strip sits on `surface-container-high`, so the field's default fill
+  // needs a step of contrast to read as an input rather than as the strip.
+  --mdc-filled-text-field-container-color: var(
+    --mat-sys-surface-container,
+    #f5f5f5
+  );
+}
+
+// Material sizes a slider to fill its container, which here would be the
+// strip's intrinsic width — a circular argument. A fixed track keeps the strip
+// compact.
+.gutter-slider {
+  flex: 0 0 auto;
+  width: 120px;
+  min-width: 0;
+  --mat-slider-value-indicator-opacity: 0;
+}
+
+// Fixed width in digit units, so dragging the thumb doesn't jitter the strip as
+// the readout gains and loses characters.
+.gutter-value {
+  flex: 0 0 auto;
+  min-width: 5ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--mat-sys-body-small-size, 0.75rem);
+  color: var(--mat-sys-on-surface-variant, #5f5f5f);
+}
+
+.badge-toggle {
+  flex: 0 0 auto;
+}

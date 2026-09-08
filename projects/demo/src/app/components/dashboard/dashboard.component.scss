@@ -24,7 +24,10 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
   padding: 16px;
   overflow: auto;
+  // Column stack: the grid toolbar sits under the dashboard, outside the grid.
+  // It brings its own gap, so none is set here.
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 
@@ -32,6 +35,13 @@
     // Component maintains its own dimensions without interference
     flex-shrink: 0;
   }
+}
+
+// Takes its own row under the dashboard, sized to its controls rather than to
+// the card.
+ngx-dashboard-toolbar {
+  flex: 0 0 auto;
+  max-width: 100%;
 }
 
 .widget-list-container {

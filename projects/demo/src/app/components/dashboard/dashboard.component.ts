@@ -17,6 +17,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   DashboardComponent as NgxDashboardComponent,
+  DashboardToolbarComponent,
+  DashboardToolbarConfig,
   WidgetListComponent,
   createEmptyDashboard,
   ReservedSpace,
@@ -34,6 +36,7 @@ import { CellSelectionDialogComponent } from './cell-selection-dialog.component'
   selector: 'app-dashboard',
   imports: [
     NgxDashboardComponent,
+    DashboardToolbarComponent,
     WidgetListComponent,
     DashboardFabComponent,
     MatButtonModule,
@@ -77,6 +80,19 @@ export class DashboardComponent {
     '0.5em'
   );
 
+  /**
+   * Grid toolbar docked below the dashboard. An object rather than a flag so
+   * the demo can also pick which controls it shows and how far they may drive
+   * the grid; the library fills the rest in from its own defaults.
+   */
+  protected readonly toolbarConfig = signal<DashboardToolbarConfig>({
+    enabled: true,
+    showGridSize: true,
+    showGutterSlider: true,
+    maxRows: 32,
+    maxColumns: 48,
+  });
+
   // Component references
   dashboard = viewChild.required<NgxDashboardComponent>('dashboard');
 
@@ -99,6 +115,8 @@ export class DashboardComponent {
   protected readonly dashboardReservedSpace = computed(
     (): ReservedSpace => ({
       top: 56 + 16, // Compact toolbar height and padding
+      // The grid toolbar is not in here: it claims its own height from the
+      // dashboard's viewport budget.
       bottom: 16 + 12 + 12, // Bottom padding from dashboard-viewport-container, dashboard border
       left: 16, // Left padding
       right:

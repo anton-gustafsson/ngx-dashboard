@@ -17,6 +17,14 @@
       (selectionComplete)="onSelectionComplete($event)"
     >
     </ngx-dashboard>
+
+    <!-- Grid controls, docked below the dashboard rather than inside it: the
+         dashboard is a letterboxed aspect-ratio box with no room for chrome.
+         The strip claims its own height, so there is nothing to reserve here.
+         Only in edit mode: the viewer has no grid to reconfigure. -->
+    @if (editMode()) {
+    <ngx-dashboard-toolbar [config]="toolbarConfig()"></ngx-dashboard-toolbar>
+    }
   </div>
 
   @if (editMode()) {
@@ -46,7 +54,6 @@
       class="widget-list"
       [collapsed]="isWidgetListCollapsed()"
       [enableSearchBox]="true"
-      [enableGutterSlider]="true"
     ></ngx-dashboard-widget-list>
   </div>
   }

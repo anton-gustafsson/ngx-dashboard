@@ -56,6 +56,20 @@ To use i18n features with ngx-dashboard, your consuming application must have `@
 - `@@ngx.dashboard.widget.list.available` - "Available widgets" (aria-label)
 - `@@ngx.dashboard.widget.list.item.ariaLabel` - "{name} widget: {description}" (aria-label pattern)
 
+### Dashboard Toolbar
+
+- `@@ngx.dashboard.toolbar.ariaLabel` - "Dashboard grid controls" (aria-label)
+- `@@ngx.dashboard.toolbar.rows.label` - "Rows"
+- `@@ngx.dashboard.toolbar.rows.ariaLabel` - "Number of dashboard grid rows"
+- `@@ngx.dashboard.toolbar.columns.label` - "Columns"
+- `@@ngx.dashboard.toolbar.columns.ariaLabel` - "Number of dashboard grid columns"
+- `@@ngx.dashboard.toolbar.gutter.label` - "Gutter"
+- `@@ngx.dashboard.toolbar.gutter.tooltip` - "Space between dashboard cells"
+- `@@ngx.dashboard.toolbar.gutter.ariaLabel` - "Gutter size between dashboard cells"
+- `@@ngx.dashboard.toolbar.badges.label` - "Badges"
+- `@@ngx.dashboard.toolbar.badges.tooltip` - "Show which widget sits in each cell"
+- `@@ngx.dashboard.toolbar.badges.ariaLabel` - "Show widget type badges on cells"
+
 ### Cell Resize
 
 - `@@ngx.dashboard.cell.resize.dimensions` - "{width} × {height}" (dimension display format)

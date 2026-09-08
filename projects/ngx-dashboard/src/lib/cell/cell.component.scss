@@ -99,6 +99,33 @@
   }
 }
 
+// Edit-mode identity badge. Sits above the widget content but never takes
+// pointer events, so drag, resize and the context menu keep working through it.
+.widget-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 15;
+  max-width: calc(100% - 8px);
+  padding: 0 5px;
+  border-radius: 6px;
+  background-color: var(--mat-sys-secondary-container, rgba(0, 0, 0, 0.6));
+  color: var(--mat-sys-on-secondary-container, #fff);
+  font-size: 8px;
+  line-height: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+:host(:hover) .widget-badge {
+  opacity: 1;
+}
+
 ///
 /// Resize stuff
 ///

@@ -125,6 +125,50 @@ describe('DashboardBridgeService', () => {
     });
   });
 
+  describe('Chrome Height Claims', () => {
+    const owner = {};
+
+    function createMockViewport() {
+      return jasmine.createSpyObj('DashboardViewportService', [
+        'claimChromeHeight',
+        'releaseChromeHeight',
+      ]);
+    }
+
+    it('should not throw when no dashboards are registered', () => {
+      expect(() => service.claimChromeHeight(owner, 64)).not.toThrow();
+      expect(() => service.releaseChromeHeight(owner)).not.toThrow();
+    });
+
+    it('should not throw for a dashboard registered without a viewport', () => {
+      service.registerDashboard(createMockDashboardStore());
+
+      expect(() => service.claimChromeHeight(owner, 64)).not.toThrow();
+      expect(() => service.releaseChromeHeight(owner)).not.toThrow();
+    });
+
+    it('should forward a claim to the first dashboard viewport', () => {
+      const viewport = createMockViewport();
+      service.registerDashboard(createMockDashboardStore('a'), viewport);
+
+      service.claimChromeHeight(owner, 64);
+
+      expect(viewport.claimChromeHeight).toHaveBeenCalledWith(owner, 64);
+    });
+
+    it('should release the claim on every dashboard, wherever it was made', () => {
+      const first = createMockViewport();
+      const second = createMockViewport();
+      service.registerDashboard(createMockDashboardStore('a'), first);
+      service.registerDashboard(createMockDashboardStore('b'), second);
+
+      service.releaseChromeHeight(owner);
+
+      expect(first.releaseChromeHeight).toHaveBeenCalledWith(owner);
+      expect(second.releaseChromeHeight).toHaveBeenCalledWith(owner);
+    });
+  });
+
   describe('Drag Operations', () => {
     it('should not start drag when no dashboards available', () => {
       const dragData: DragData = { kind: 'widget', content: createMockWidgetMetadata() };

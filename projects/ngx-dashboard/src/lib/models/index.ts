@@ -5,6 +5,7 @@ export * from './cell-position';
 export * from './cell-dialog';
 export * from './cell-resize';
 export * from './dashboard-data.dto';
+export * from './dashboard-toolbar-config';
 export * from './dashboard-data.utils';
 export * from './drag-data';
 export * from './grid-selection';

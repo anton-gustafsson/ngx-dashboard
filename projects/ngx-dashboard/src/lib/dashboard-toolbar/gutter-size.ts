@@ -9,9 +9,9 @@
  * resolution.
  */
 export const GUTTER_UNITS = {
-  px: { max: 48, step: 1 },
-  em: { max: 3, step: 0.05 },
-  rem: { max: 3, step: 0.05 },
+  px: { max: 48, step: 4 },
+  em: { max: 3, step: 0.5 },
+  rem: { max: 3, step: 0.5 },
 } as const;
 
 export type GutterUnit = keyof typeof GUTTER_UNITS;

@@ -368,4 +368,70 @@ describe('DashboardViewportService', () => {
       expect(availableSpace.height).toBe(668); // 768 - 60 - 40
     });
   });
+
+  // Height claimed by a library surface docked under the grid (the grid
+  // toolbar), on top of whatever the host reserved.
+  describe('Chrome Height Claims', () => {
+    const toolbar = {};
+    const other = {};
+
+    it('should start with nothing claimed', () => {
+      expect(service.chromeHeight()).toBe(0);
+      expect(service.availableSpace().height).toBe(768);
+    });
+
+    it('should take a claim off the available height', () => {
+      service.claimChromeHeight(toolbar, 64);
+
+      expect(service.chromeHeight()).toBe(64);
+      expect(service.availableSpace().height).toBe(704);
+    });
+
+    it('should sum claims from different owners', () => {
+      service.claimChromeHeight(toolbar, 64);
+      service.claimChromeHeight(other, 20);
+
+      expect(service.chromeHeight()).toBe(84);
+    });
+
+    it('should replace an owner own claim rather than adding to it', () => {
+      service.claimChromeHeight(toolbar, 64);
+      service.claimChromeHeight(toolbar, 72);
+
+      expect(service.chromeHeight()).toBe(72);
+    });
+
+    it('should round a fractional measurement up, leaving nothing uncovered', () => {
+      service.claimChromeHeight(toolbar, 63.2);
+
+      expect(service.chromeHeight()).toBe(64);
+    });
+
+    it('should treat a negative claim as none', () => {
+      service.claimChromeHeight(toolbar, -10);
+
+      expect(service.chromeHeight()).toBe(0);
+    });
+
+    it('should drop only the released claim', () => {
+      service.claimChromeHeight(toolbar, 64);
+      service.claimChromeHeight(other, 20);
+
+      service.releaseChromeHeight(toolbar);
+
+      expect(service.chromeHeight()).toBe(20);
+    });
+
+    it('should ignore a release from an owner holding no claim', () => {
+      expect(() => service.releaseChromeHeight(toolbar)).not.toThrow();
+      expect(service.chromeHeight()).toBe(0);
+    });
+
+    it('should stack with host reserved space instead of replacing it', () => {
+      service.setReservedSpace({ top: 60, right: 0, bottom: 40, left: 0 });
+      service.claimChromeHeight(toolbar, 64);
+
+      expect(service.availableSpace().height).toBe(604); // 768 - 60 - 40 - 64
+    });
+  });
 });

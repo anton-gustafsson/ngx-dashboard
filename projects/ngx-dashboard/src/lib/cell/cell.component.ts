@@ -25,6 +25,7 @@ import {
   CellId,
   CellIdUtils,
   WidgetId,
+  WidgetIdUtils,
   DragData,
   WidgetFactory,
   Widget,
@@ -77,6 +78,8 @@ export class CellComponent {
   widgetFactory = input<WidgetFactory | undefined>(undefined);
   widgetState = input<unknown | undefined>(undefined);
   isEditMode = input<boolean>(false);
+  /** Render the edit-mode identity badge in the top-right corner. */
+  showWidgetBadge = input<boolean>(false);
   flat = input<boolean | undefined>(undefined);
 
   row = model.required<number>();
@@ -129,6 +132,22 @@ export class CellComponent {
   readonly gridColumnStyle = computed(
     () => `${this.column()} / span ${this.colSpan()}`
   );
+
+  /**
+   * Short label for the edit-mode identity badge: the widget type's display
+   * name when the factory resolved, otherwise the grid position so an
+   * unresolved cell is still identifiable.
+   */
+  readonly badgeLabel = computed(
+    () => this.widgetFactory()?.name ?? CellIdUtils.toString(this.cellId())
+  );
+
+  /** Full identity (type + instance id) for the badge tooltip. */
+  readonly badgeTitle = computed(() => {
+    const factory = this.widgetFactory();
+    const id = WidgetIdUtils.toString(this.widgetId());
+    return factory ? `${factory.name} (${factory.widgetTypeid}) — ${id}` : id;
+  });
 
   isResizing = computed(() => {
     const resizeData = this.#store.resizeData();
