@@ -10,8 +10,13 @@ import {
   CellData,
   CellResizeDirection,
   CellResizeDelta,
+  WidgetId,
 } from '../../models';
-import { calculateResizePreview, type ResizeData } from './utils/resize.utils';
+import {
+  calculateResizePreview,
+  computeFillTargets,
+  type ResizeData,
+} from './utils/resize.utils';
 
 export interface ResizeState {
   resizeData: ResizeData | null;
@@ -66,6 +71,7 @@ export const withResize = () =>
         dependencies: {
           cells: CellData[];
         },
+        fillCopy: boolean,
       ) {
         const cell = dependencies.cells.find((c) =>
           CellIdUtils.equals(c.cellId, cellId),
@@ -79,6 +85,7 @@ export const withResize = () =>
             originalColSpan: cell.colSpan,
             previewRowSpan: cell.rowSpan,
             previewColSpan: cell.colSpan,
+            fillCopy,
           },
         });
       },
@@ -91,6 +98,7 @@ export const withResize = () =>
           rows: number;
           columns: number;
         },
+        fillCopy: boolean,
       ) {
         const resizeData = store.resizeData();
         if (!resizeData) return;
@@ -104,12 +112,18 @@ export const withResize = () =>
           dependencies.columns,
         );
 
-        if (newSpans) {
+        if (
+          newSpans &&
+          (newSpans.rowSpan !== resizeData.previewRowSpan ||
+            newSpans.colSpan !== resizeData.previewColSpan ||
+            fillCopy !== resizeData.fillCopy)
+        ) {
           patchState(store, {
             resizeData: {
               ...resizeData,
               previewRowSpan: newSpans.rowSpan,
               previewColSpan: newSpans.colSpan,
+              fillCopy,
             },
           });
         }
@@ -118,26 +132,54 @@ export const withResize = () =>
       _endResize(
         apply: boolean,
         dependencies: {
+          cells: CellData[];
           updateWidgetSpan: (
             id: CellId,
             rowSpan: number,
             colSpan: number,
           ) => void;
+          duplicateWidget: (
+            widgetId: WidgetId,
+            row: number,
+            col: number,
+            widgetState: unknown,
+          ) => boolean;
         },
+        // Snapshotted by the cell as the gesture ends, so every tile carries
+        // what the user can see rather than the state the widget loaded with.
+        widgetState?: unknown,
       ) {
         const resizeData = store.resizeData();
         if (!resizeData) return;
 
-        if (
-          apply &&
-          (resizeData.previewRowSpan !== resizeData.originalRowSpan ||
-            resizeData.previewColSpan !== resizeData.originalColSpan)
-        ) {
-          dependencies.updateWidgetSpan(
-            resizeData.cellId,
-            resizeData.previewRowSpan,
-            resizeData.previewColSpan,
-          );
+        const swept =
+          resizeData.previewRowSpan !== resizeData.originalRowSpan ||
+          resizeData.previewColSpan !== resizeData.originalColSpan;
+
+        if (apply && swept) {
+          // A fill leaves the source at its original size; the area it swept
+          // is paid out in copies instead of in span.
+          if (resizeData.fillCopy) {
+            const cell = dependencies.cells.find((c) =>
+              CellIdUtils.equals(c.cellId, resizeData.cellId),
+            );
+            if (cell) {
+              for (const target of computeFillTargets(resizeData, cell)) {
+                dependencies.duplicateWidget(
+                  cell.widgetId,
+                  target.row,
+                  target.col,
+                  widgetState,
+                );
+              }
+            }
+          } else {
+            dependencies.updateWidgetSpan(
+              resizeData.cellId,
+              resizeData.previewRowSpan,
+              resizeData.previewColSpan,
+            );
+          }
         }
 
         patchState(store, { resizeData: null });

@@ -118,6 +118,7 @@ describe('CellComponent - Resize Functionality', () => {
       expect(component.resizeStart.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         direction: 'horizontal',
+        fillCopy: false,
       });
     });
 
@@ -129,7 +130,80 @@ describe('CellComponent - Resize Functionality', () => {
       expect(component.resizeStart.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         direction: 'vertical',
+        fillCopy: false,
       });
+    });
+
+    it('should flag a fill when the copy modifier is held', () => {
+      spyOn(component.resizeStart, 'emit');
+
+      component.onResizeStart(
+        { ...mockMouseEvent, ctrlKey: true } as unknown as MouseEvent,
+        'both'
+      );
+
+      expect(component.resizeStart.emit).toHaveBeenCalledWith({
+        cellId: mockCellId,
+        direction: 'both',
+        fillCopy: true,
+      });
+    });
+
+    it('should flag a fill for the alt modifier too', () => {
+      spyOn(component.resizeStart, 'emit');
+
+      component.onResizeStart(
+        { ...mockMouseEvent, altKey: true } as unknown as MouseEvent,
+        'horizontal'
+      );
+
+      expect(component.resizeStart.emit).toHaveBeenCalledWith({
+        cellId: mockCellId,
+        direction: 'horizontal',
+        fillCopy: true,
+      });
+    });
+
+    it('should re-emit with the last delta when the modifier is pressed without moving', () => {
+      component.onResizeStart(
+        mockMouseEvent as unknown as MouseEvent,
+        'horizontal'
+      );
+      (
+        component as unknown as {
+          handleResizeMove: (event: MouseEvent) => void;
+        }
+      ).handleResizeMove({ clientX: 250, clientY: 200 } as MouseEvent);
+
+      spyOn(component.resizeMove, 'emit');
+      (
+        component as unknown as {
+          handleResizeModifierChange: (event: KeyboardEvent) => void;
+        }
+      ).handleResizeModifierChange({ ctrlKey: true } as KeyboardEvent);
+
+      expect(component.resizeMove.emit).toHaveBeenCalledWith({
+        cellId: mockCellId,
+        direction: 'horizontal',
+        delta: { columns: 1, rows: 0 },
+        fillCopy: true,
+      });
+    });
+
+    it('should ignore a key press that does not change the modifier', () => {
+      component.onResizeStart(
+        mockMouseEvent as unknown as MouseEvent,
+        'horizontal'
+      );
+
+      spyOn(component.resizeMove, 'emit');
+      (
+        component as unknown as {
+          handleResizeModifierChange: (event: KeyboardEvent) => void;
+        }
+      ).handleResizeModifierChange({ shiftKey: true } as KeyboardEvent);
+
+      expect(component.resizeMove.emit).not.toHaveBeenCalled();
     });
 
     it('should prevent default event behavior', () => {
@@ -199,6 +273,7 @@ describe('CellComponent - Resize Functionality', () => {
         cellId: mockCellId,
         direction: 'horizontal',
         delta: { columns: 1, rows: 0 },
+        fillCopy: false,
       });
     });
 
@@ -222,6 +297,7 @@ describe('CellComponent - Resize Functionality', () => {
         cellId: mockCellId,
         direction: 'vertical',
         delta: { columns: 0, rows: 2 },
+        fillCopy: false,
       });
     });
 
@@ -236,6 +312,7 @@ describe('CellComponent - Resize Functionality', () => {
         cellId: mockCellId,
         direction: 'horizontal',
         delta: { columns: -1, rows: 0 },
+        fillCopy: false,
       });
     });
   });
@@ -260,6 +337,7 @@ describe('CellComponent - Resize Functionality', () => {
       expect(component.resizeEnd.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         apply: true,
+        widgetState: undefined,
       });
     });
 
@@ -306,6 +384,7 @@ describe('CellComponent - Resize Functionality', () => {
       expect(component.resizeStart.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         direction: 'both',
+        fillCopy: false,
       });
     });
 
@@ -329,6 +408,7 @@ describe('CellComponent - Resize Functionality', () => {
         cellId: mockCellId,
         direction: 'both',
         delta: { columns: 2, rows: 2 },
+        fillCopy: false,
       });
     });
 
@@ -343,6 +423,7 @@ describe('CellComponent - Resize Functionality', () => {
         cellId: mockCellId,
         direction: 'both',
         delta: { columns: 3, rows: -1 },
+        fillCopy: false,
       });
     });
 
@@ -356,6 +437,7 @@ describe('CellComponent - Resize Functionality', () => {
         cellId: mockCellId,
         direction: 'both',
         delta: { columns: -1, rows: -1 },
+        fillCopy: false,
       });
     });
 
@@ -386,15 +468,18 @@ describe('CellComponent - Resize Functionality', () => {
       expect(component.resizeStart.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         direction: 'both',
+        fillCopy: false,
       });
       expect(component.resizeMove.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         direction: 'both',
         delta: { columns: 1, rows: 1 },
+        fillCopy: false,
       });
       expect(component.resizeEnd.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         apply: true,
+        widgetState: undefined,
       });
     });
 
@@ -551,6 +636,7 @@ describe('CellComponent - Resize Functionality', () => {
       expect(component.resizeStart.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         direction: jasmine.any(String),
+        fillCopy: false,
       });
     });
 
@@ -568,6 +654,7 @@ describe('CellComponent - Resize Functionality', () => {
           columns: jasmine.any(Number),
           rows: jasmine.any(Number),
         },
+        fillCopy: false,
       });
     });
 
@@ -585,6 +672,7 @@ describe('CellComponent - Resize Functionality', () => {
           columns: jasmine.any(Number),
           rows: jasmine.any(Number),
         },
+        fillCopy: false,
       });
     });
 
@@ -602,6 +690,7 @@ describe('CellComponent - Resize Functionality', () => {
           columns: jasmine.any(Number),
           rows: jasmine.any(Number),
         },
+        fillCopy: false,
       });
     });
   });
@@ -628,6 +717,7 @@ describe('CellComponent - Resize Functionality', () => {
       expect(component.resizeStart.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         direction: 'horizontal',
+        fillCopy: false,
       });
 
       // Move resize
@@ -636,6 +726,7 @@ describe('CellComponent - Resize Functionality', () => {
         cellId: mockCellId,
         direction: 'horizontal',
         delta: { columns: 1, rows: 0 },
+        fillCopy: false,
       });
 
       // End resize
@@ -643,6 +734,7 @@ describe('CellComponent - Resize Functionality', () => {
       expect(component.resizeEnd.emit).toHaveBeenCalledWith({
         cellId: mockCellId,
         apply: true,
+        widgetState: undefined,
       });
     });
 

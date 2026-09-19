@@ -50,6 +50,7 @@ describe('DashboardStore - Resize Operations', () => {
         originalColSpan: 2,
         previewRowSpan: 3,
         previewColSpan: 2,
+        fillCopy: false,
       });
     });
 
@@ -75,6 +76,7 @@ describe('DashboardStore - Resize Operations', () => {
         originalColSpan: 1,
         previewRowSpan: 1,
         previewColSpan: 1,
+        fillCopy: false,
       });
     });
 
@@ -145,6 +147,7 @@ describe('DashboardStore - Resize Operations', () => {
         originalColSpan: 16,
         previewRowSpan: 16,
         previewColSpan: 16,
+        fillCopy: false,
       });
     });
   });

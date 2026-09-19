@@ -23,6 +23,27 @@ const initialWidgetManagementState: WidgetManagementState = {
   widgetsById: {},
 };
 
+/**
+ * Snapshot a widget's state for a second, independent instance.
+ *
+ * A duplicated widget is rendered from the same state value, and two live
+ * instances sharing one mutable object graph would edit each other. Cloning
+ * covers the JSON-shaped state `CellDataDto.widgetState` already requires;
+ * anything `structuredClone` refuses has broken that contract already, so it
+ * is passed through by reference — loudly — rather than failing the duplicate.
+ */
+function cloneWidgetState(state: unknown): unknown {
+  try {
+    return structuredClone(state);
+  } catch {
+    console.warn(
+      'ngx-dashboard: widget state is not structured-cloneable, so the copy ' +
+        'shares it with the original. Widget state must be JSON serializable.'
+    );
+    return state;
+  }
+}
+
 export const withWidgetManagement = () =>
   signalStoreFeature(
     withState<WidgetManagementState>(initialWidgetManagementState),
@@ -122,6 +143,46 @@ export const withWidgetManagement = () =>
         patchState(store, {
           widgetsById: { ...store.widgetsById(), [widgetKey]: cell },
         });
+      },
+
+      /**
+       * Place an independent copy of an existing widget at `row`/`col`.
+       *
+       * Everything that makes the widget what it is comes along — factory,
+       * type, spans, flat setting and a snapshot of its state — and only the
+       * identity and the position are new. Returns false for an unknown
+       * widget id so the caller can treat it like any other rejected drop.
+       *
+       * `widgetState` overrides what the store holds, which is only the state
+       * the widget was created with; a caller that can see the live widget
+       * passes its current state so the copy matches what the user sees.
+       */
+      duplicateWidget(
+        widgetId: WidgetId,
+        row: number,
+        col: number,
+        widgetState?: unknown
+      ): boolean {
+        const source = store.widgetsById()[WidgetIdUtils.toString(widgetId)];
+        if (!source) return false;
+
+        const newWidgetId = WidgetIdUtils.generate();
+        const copy: CellData = {
+          ...source,
+          widgetId: newWidgetId,
+          cellId: CellIdUtils.create(row, col),
+          row,
+          col,
+          widgetState: cloneWidgetState(widgetState ?? source.widgetState),
+        };
+
+        patchState(store, {
+          widgetsById: {
+            ...store.widgetsById(),
+            [WidgetIdUtils.toString(newWidgetId)]: copy,
+          },
+        });
+        return true;
       },
 
       updateCellSettings(widgetId: WidgetId, flat: boolean) {

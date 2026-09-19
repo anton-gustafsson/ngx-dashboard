@@ -60,6 +60,7 @@ This workspace contains three main projects:
 Core dashboard library providing the fundamental grid and widget management system:
 
 - **Grid System** - Responsive drag-and-drop grid with collision detection and boundary constraints
+- **Copy Gestures** - Holding `Ctrl`/`Cmd`/`Alt` while dragging a widget drops an independent copy carrying the widget's live state; holding it while dragging a resize handle tiles the swept area with copies
 - **Grid Geometry API** - Rows, columns, and gutter settable at runtime, with clamp-to-content resizing that never orphans a widget
 - **Cell Components** - Cells resizable on both axes (right, bottom, and corner handles) with live preview, context menus, and dual flat/elevated appearance modes
 - **Cell Selection** - Optional snap-to-grid rectangle selection with modifier-key gating, a click-vs-drag threshold, and pointer support for mouse, touch, and pen

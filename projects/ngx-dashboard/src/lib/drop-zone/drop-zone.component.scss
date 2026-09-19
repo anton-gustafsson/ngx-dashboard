@@ -40,6 +40,17 @@
   outline: 1px solid rgba(33, 150, 243, 0.6);
 }
 
+// Area a copy-fill would tile. Dashed, and in the copy-drag accent rather
+// than the resize blue, so a fill never reads as a grow.
+.drop-zone--resize-fill {
+  background-color: color-mix(
+    in srgb,
+    var(--mat-sys-tertiary) 22%,
+    transparent
+  );
+  outline: 1px dashed color-mix(in srgb, var(--mat-sys-tertiary) 60%, transparent);
+}
+
 // Tracks being added by an in-progress grid resize preview
 .drop-zone--preview {
   background-color: color-mix(in srgb, var(--mat-sys-primary) 18%, transparent);

@@ -7,6 +7,7 @@ export * from './cell-resize';
 export * from './dashboard-data.dto';
 export * from './dashboard-data.utils';
 export * from './drag-data';
+export * from './drag-modifiers';
 export * from './grid-config';
 export * from './gutter.utils';
 export * from './grid-selection';

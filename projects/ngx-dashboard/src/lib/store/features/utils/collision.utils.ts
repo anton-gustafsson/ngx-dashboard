@@ -14,6 +14,7 @@ export function calculateCollisionInfo(
   cells: CellData[],
   rows: number,
   columns: number,
+  copy: boolean,
 ): CollisionInfo {
   if (!dragData || !hovered) {
     return {
@@ -46,7 +47,11 @@ export function calculateCollisionInfo(
     }
   }
 
-  const excludeWidgetId = isCell ? dragData.content.widgetId : undefined;
+  // A move vacates the source, so the dragged widget cannot collide with
+  // itself. A copy leaves the original in place, so it can — and a copy
+  // dropped over its own source is rejected like any other overlap.
+  const excludeWidgetId =
+    isCell && !copy ? dragData.content.widgetId : undefined;
 
   // Check for actual collisions with other widgets (not self)
   const hasCollisions = footprint.some((pos) =>

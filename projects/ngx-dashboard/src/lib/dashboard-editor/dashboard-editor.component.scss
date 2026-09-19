@@ -83,7 +83,6 @@
 
 .grid-cell.is-dragging {
   pointer-events: none; /* don’t block drop zones while lifted */
-  opacity: 0.5;
 }
 
 /* ── Grid resize preview badge ───────────────────────────────────── */

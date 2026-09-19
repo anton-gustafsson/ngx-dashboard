@@ -894,6 +894,46 @@ imported with more rows than the cap keeps them.
 Percentages and viewport units are rejected for the gutter: the cell size is computed
 with container-query arithmetic (`100cqi`), which they break.
 
+### Drag Gestures in Edit Mode
+
+Dragging a widget moves it. One modifier, held at any point during the drag, changes
+what the drop does — there is nothing to enable, and nothing to configure:
+
+| Held while dragging | Effect |
+| --- | --- |
+| *(nothing)* | Move the widget to the hovered cell |
+| `Ctrl` / `Cmd` / `Alt` | Copy: the original stays put and an independent duplicate lands at the drop |
+
+A copy carries the widget's type, spans, flat setting and a snapshot of its *live*
+state, so a duplicate matches what you can see rather than what was last saved. The
+duplicate is independent: editing one does not touch the other. Because the original
+stays where it is, a copy dropped overlapping its own source is rejected like any
+other collision, and the source is drawn at full opacity rather than ghosted.
+
+The drop cursor reflects this — a copy drag shows the platform's copy cursor.
+
+#### Fill an area with copies
+
+The same modifier works on a widget's **resize handles**. Hold `Ctrl`/`Cmd`/`Alt`
+and drag a handle: instead of growing the widget, the swept area is tiled with
+copies when you release.
+
+| Handle dragged | Result |
+| --- | --- |
+| Right edge | Fills along the row |
+| Bottom edge | Fills down the column |
+| Bottom-right corner | Fills the whole rectangle |
+
+The marked area previews in a dashed accent colour rather than the solid resize
+blue, so a fill never looks like a grow. Tiles are the size of the source widget
+and are laid out from it; a remainder too small for another whole tile is left
+empty. The source keeps its own size and position.
+
+The swept area is clamped exactly as a resize would be — it stops at the grid
+edge and at the first neighbouring widget — so every tile lands on free cells.
+Copies carry live state and are independent, the same as a copy-drag. Releasing
+the modifier mid-gesture turns it back into an ordinary resize.
+
 ### Widget Name Badges
 
 ```html

@@ -23,11 +23,18 @@ import { DashboardService } from '../../services/dashboard.service';
 export interface DragDropState {
   dragData: DragData | null;
   hoveredDropZone: { row: number; col: number } | null;
+  /**
+   * Whether the last drag event over the grid asked for a copy. Held in the
+   * store rather than passed per-call because the highlight, the collision
+   * map and the drop cursor all have to agree on it.
+   */
+  copyDrag: boolean;
 }
 
 const initialDragDropState: DragDropState = {
   dragData: null,
   hoveredDropZone: null,
+  copyDrag: false,
 };
 
 export const withDragDrop = () =>
@@ -65,11 +72,16 @@ export const withDragDrop = () =>
         patchState(store, {
           dragData: null,
           hoveredDropZone: null,
+          copyDrag: false,
         });
       },
 
       setHoveredDropZone(zone: { row: number; col: number } | null) {
         patchState(store, { hoveredDropZone: zone });
+      },
+
+      setCopyDrag(copy: boolean) {
+        patchState(store, { copyDrag: copy });
       },
     })),
 
@@ -95,7 +107,16 @@ export const withDragDrop = () =>
             row: number,
             col: number,
           ) => void;
+          duplicateWidget: (
+            widgetId: WidgetId,
+            row: number,
+            col: number,
+            widgetState: unknown,
+          ) => boolean;
         },
+        // Passed in rather than read off the store: step 2 below calls
+        // `endDrag`, which clears it, before the copy branch would read it.
+        copy: boolean,
       ): boolean {
         // 1. Validate placement using existing collision detection
         const collisionInfo = calculateCollisionInfo(
@@ -104,6 +125,7 @@ export const withDragDrop = () =>
           dependencies.cells,
           dependencies.rows,
           dependencies.columns,
+          copy,
         );
 
         // 2. End drag state first
@@ -128,8 +150,17 @@ export const withDragDrop = () =>
           return true;
         }
 
-        // 5. Handle cell movement
+        // 5. Handle cell movement, or duplication when the drag asked to copy
         if (dragData.kind === 'cell') {
+          if (copy) {
+            return dependencies.duplicateWidget(
+              dragData.content.widgetId,
+              targetPosition.row,
+              targetPosition.col,
+              dragData.widgetState,
+            );
+          }
+
           dependencies.updateWidgetPosition(
             dragData.content.widgetId,  // Use widgetId instead of cellId
             targetPosition.row,

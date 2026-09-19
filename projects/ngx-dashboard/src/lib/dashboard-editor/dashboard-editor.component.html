@@ -15,6 +15,7 @@
       [highlightResize]="
         resizePreviewMap().has(createCellId(position.row, position.col))
       "
+      [highlightResizeFill]="isResizeFill()"
       [highlightPreview]="isPreviewAdded(position.row, position.col)"
       [editMode]="true"
       (dragEnter)="onDragEnter($event)"

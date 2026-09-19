@@ -441,6 +441,8 @@ describe('CellComponent - User Scenarios', () => {
           rowSpan: 2,
           colSpan: 3,
         },
+        // No widget instance in this fixture, so there is no live state.
+        widgetState: undefined,
       });
 
       // isDragging is set via requestAnimationFrame - tick to execute it

@@ -84,29 +84,31 @@ export const DashboardStore = signalStore(
     // limit shown and the limit enforced cannot drift.
     minGridSize: computed(() => minGridSizeFor(store.cells())),
 
-    // Invalid zones (collision detection)
-    invalidHighlightMap: computed(() => {
-      const collisionInfo = calculateCollisionInfo(
+    // One collision pass for the drag in progress. Both the invalid-zone
+    // highlight and the drop-validity answer derive from it, so the preview
+    // and the decision cannot disagree — and `dragover`, which fires
+    // continuously, pays for the scan once rather than twice.
+    dragCollisionInfo: computed(() =>
+      calculateCollisionInfo(
         store.dragData(),
         store.hoveredDropZone(),
         store.cells(),
         store.rows(),
-        store.columns()
-      );
+        store.columns(),
+        store.copyDrag()
+      )
+    ),
+  })),
 
-      return new Set(collisionInfo.invalidCells);
-    }),
+  withComputed((store) => ({
+    // Invalid zones (collision detection)
+    invalidHighlightMap: computed(
+      () => new Set(store.dragCollisionInfo().invalidCells)
+    ),
 
     // Check if placement would be valid (for drop validation)
     isValidPlacement: computed(() => {
-      const collisionInfo = calculateCollisionInfo(
-        store.dragData(),
-        store.hoveredDropZone(),
-        store.cells(),
-        store.rows(),
-        store.columns()
-      );
-
+      const collisionInfo = store.dragCollisionInfo();
       return !collisionInfo.hasCollisions && !collisionInfo.outOfBounds;
     }),
   })),
@@ -114,51 +116,80 @@ export const DashboardStore = signalStore(
   // Cross-feature methods (need access to multiple features)
   withMethods((store) => ({
     // DROP HANDLING (delegate to drag-drop feature with dependency injection)
+    // The copy flag is read here, before `_handleDrop` ends the drag and
+    // clears it. It comes from the state the drag itself last reported, which
+    // is the only trustworthy source: a `drop` event's own modifier flags can
+    // be stale.
     handleDrop(
       dragData: DragData,
       targetPosition: { row: number; col: number }
     ): boolean {
-      return store._handleDrop(dragData, targetPosition, {
-        cells: store.cells(),
-        rows: store.rows(),
-        columns: store.columns(),
-        dashboardService: store.dashboardService,
-        createWidget: store.createWidget,
-        updateWidgetPosition: store.updateWidgetPosition,
-      });
+      return store._handleDrop(
+        dragData,
+        targetPosition,
+        {
+          cells: store.cells(),
+          rows: store.rows(),
+          columns: store.columns(),
+          dashboardService: store.dashboardService,
+          createWidget: store.createWidget,
+          updateWidgetPosition: store.updateWidgetPosition,
+          duplicateWidget: store.duplicateWidget,
+        },
+        store.copyDrag()
+      );
     },
 
     // RESIZE METHODS (delegate to resize feature with dependency injection)
-    startResize(cellId: CellId) {
-      store._startResize(cellId, {
-        cells: store.cells(),
-      });
-    },
-
-    updateResizePreview(direction: CellResizeDirection, delta: CellResizeDelta) {
-      store._updateResizePreview(direction, delta, {
-        cells: store.cells(),
-        rows: store.rows(),
-        columns: store.columns(),
-      });
-    },
-
-    endResize(apply: boolean) {
-      store._endResize(apply, {
-        updateWidgetSpan: (
-          cellId: CellId,
-          rowSpan: number,
-          colSpan: number
-        ) => {
-          // Adapter: find widget by cellId and update using widgetId
-          const widget = store
-            .cells()
-            .find((c) => CellIdUtils.equals(c.cellId, cellId));
-          if (widget) {
-            store.updateWidgetSpan(widget.widgetId, rowSpan, colSpan);
-          }
+    startResize(cellId: CellId, fillCopy = false) {
+      store._startResize(
+        cellId,
+        {
+          cells: store.cells(),
         },
-      });
+        fillCopy
+      );
+    },
+
+    updateResizePreview(
+      direction: CellResizeDirection,
+      delta: CellResizeDelta,
+      fillCopy = false
+    ) {
+      store._updateResizePreview(
+        direction,
+        delta,
+        {
+          cells: store.cells(),
+          rows: store.rows(),
+          columns: store.columns(),
+        },
+        fillCopy
+      );
+    },
+
+    endResize(apply: boolean, widgetState?: unknown) {
+      store._endResize(
+        apply,
+        {
+          cells: store.cells(),
+          duplicateWidget: store.duplicateWidget,
+          updateWidgetSpan: (
+            cellId: CellId,
+            rowSpan: number,
+            colSpan: number
+          ) => {
+            // Adapter: find widget by cellId and update using widgetId
+            const widget = store
+              .cells()
+              .find((c) => CellIdUtils.equals(c.cellId, cellId));
+            if (widget) {
+              store.updateWidgetSpan(widget.widgetId, rowSpan, colSpan);
+            }
+          },
+        },
+        widgetState
+      );
     },
 
     // GRID RESIZE (change row/column counts on a populated dashboard)

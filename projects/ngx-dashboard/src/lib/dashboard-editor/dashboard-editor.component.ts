@@ -17,7 +17,10 @@ import {
 import { CellComponent } from '../cell/cell.component';
 import { CellContextMenuComponent } from '../cell/cell-context-menu.component';
 import { CellContextMenuService } from '../cell/cell-context-menu.service';
-import { DropZoneComponent } from '../drop-zone/drop-zone.component';
+import {
+  DropZoneComponent,
+  DropZoneHover,
+} from '../drop-zone/drop-zone.component';
 import { EmptyCellContextMenuComponent } from '../drop-zone/empty-cell-context-menu.component';
 import {
   GridResizeHandleComponent,
@@ -83,6 +86,15 @@ export class DashboardEditorComponent {
   invalidHighlightMap = this.#store.invalidHighlightMap;
   hoveredDropZone = this.#store.hoveredDropZone;
   resizePreviewMap = this.#store.resizePreviewMap;
+
+  /**
+   * The resize preview marks an area that will be filled with copies rather
+   * than absorbed into the widget. Bound as a separate flag so the preview
+   * reads differently at a glance, instead of a grow and a fill looking alike.
+   */
+  protected readonly isResizeFill = computed(
+    () => this.#store.resizeData()?.fillCopy ?? false
+  );
   cellDimensions = this.#store.gridCellDimensions;
   gridResizePreview = this.#store.gridResizePreview;
 
@@ -203,10 +215,12 @@ export class DashboardEditorComponent {
     this.#store.updateCellSettings(id, flat);
 
   // Pure delegation - drag and drop event handlers
-  onDragOver = (event: { row: number; col: number }) =>
-    this.#store.setHoveredDropZone(event);
+  onDragOver = (event: DropZoneHover) => {
+    this.#store.setCopyDrag(event.copy);
+    this.#store.setHoveredDropZone({ row: event.row, col: event.col });
+  };
 
-  onDragEnter = (event: { row: number; col: number }) => this.onDragOver(event);
+  onDragEnter = (event: DropZoneHover) => this.onDragOver(event);
 
   onDragExit = () => this.#store.setHoveredDropZone(null);
 
@@ -228,18 +242,24 @@ export class DashboardEditorComponent {
   onCellResizeStart = (event: {
     cellId: CellId;
     direction: CellResizeDirection;
-  }) => this.#store.startResize(event.cellId);
+    fillCopy: boolean;
+  }) => this.#store.startResize(event.cellId, event.fillCopy);
 
   onCellResizeMove = (event: {
     cellId: CellId;
     direction: CellResizeDirection;
     delta: CellResizeDelta;
-  }) => this.#store.updateResizePreview(event.direction, event.delta);
+    fillCopy: boolean;
+  }) =>
+    this.#store.updateResizePreview(event.direction, event.delta, event.fillCopy);
 
-  onCellResizeEnd = (event: { cellId: CellId; apply: boolean }) =>
-    this.#store.endResize(event.apply);
+  onCellResizeEnd = (event: {
+    cellId: CellId;
+    apply: boolean;
+    widgetState?: unknown;
+  }) => this.#store.endResize(event.apply, event.widgetState);
 
-  // Handle drop events by delegating to store's business logic
+  // Handle drop events by delegating to store's business logic.
   onDragDrop(event: { data: DragData; target: { row: number; col: number } }) {
     this.#store.handleDrop(event.data, event.target);
     // Note: Store handles all validation and error handling internally
