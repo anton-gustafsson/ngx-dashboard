@@ -35,7 +35,6 @@ import {
   CellResizeDelta,
   GridPoint,
   GridResizeResult,
-  GridSelectionUtils,
 } from '../models';
 import { DashboardStore } from '../store/dashboard-store';
 
@@ -103,17 +102,28 @@ export class DashboardEditorComponent {
   isAreaSelecting = this.#store.isAreaSelecting;
 
   /**
-   * Whether a cell is inside the marked area -- four integer comparisons
-   * against the rectangle. A populated editor asks this once per drop zone
-   * per change-detection pass, and a rectangle does not have to be expanded
-   * into a set of cells to be asked about.
+   * The marked region as grid-line placement for a single overlay element.
+   *
+   * One computed and one element, rather than a boolean asked of every drop
+   * zone on every change-detection pass: the rectangle is already the shape
+   * being drawn, so it never has to be expanded into a set of cells.
+   *
+   * Clamped to the rendered grid because a live resize preview can shrink
+   * the tracks under a rectangle marked before it, and an overlay reaching
+   * past the last track would make the grid grow an implicit one.
    */
-  isInArea(row: number, col: number): boolean {
+  protected readonly areaOverlay = computed(() => {
     const selection = this.areaSelection();
-    return (
-      selection !== null && GridSelectionUtils.containsCell(selection, row, col)
-    );
-  }
+    if (!selection) return null;
+
+    const top = selection.topLeft.row;
+    const left = selection.topLeft.col;
+    const bottom = Math.min(selection.bottomRight.row, this.effectiveRows());
+    const right = Math.min(selection.bottomRight.col, this.effectiveColumns());
+    if (bottom < top || right < left) return null;
+
+    return { row: `${top} / ${bottom + 1}`, column: `${left} / ${right + 1}` };
+  });
 
   // Effective grid size (live preview when dragging, else committed) — shared
   // from the store so the editor grid, the outer frame and the viewport
@@ -343,26 +353,20 @@ export class DashboardEditorComponent {
     };
   }
 
-  /**
-   * Extend the marquee to whichever cell the pointer is over.
-   *
-   * Resolved by hit-testing the point rather than by listening on each cell.
-   * Widgets are transparent to the pointer while a marquee runs (see
-   * `.is-area-selecting` in the stylesheet), so the drop zone underneath one
-   * is what answers, and a drag across a widget keeps extending the rectangle
-   * instead of freezing at the last empty cell.
-   */
+  /** Extend the marquee to whichever cell the pointer is over. */
   #onAreaSelectMove(event: PointerEvent): void {
-    const cell = this.#cellFromTarget(
-      document.elementFromPoint(event.clientX, event.clientY)
-    );
+    const cell = this.#cellFromPoint(event.clientX, event.clientY);
     if (cell) this.#store.updateAreaSelection(cell);
   }
 
   /**
-   * Finish the gesture. A pointer that never travelled far enough was a click
-   * on the grid, which drops the selection rather than marking a single cell
-   * -- the same rule the viewer applies, so the two gestures feel alike.
+   * Finish the gesture on the cell the pointer was released over, so a
+   * release above a widget lands where the user let go rather than at the
+   * last cell a move happened to resolve.
+   *
+   * A pointer that never travelled far enough was a click on the grid, which
+   * drops the selection rather than marking a single cell -- the same rule
+   * the viewer applies, so the two gestures feel alike.
    */
   #onAreaSelectEnd(event: PointerEvent): void {
     const start = this.#pointerDownPos;
@@ -373,11 +377,31 @@ export class DashboardEditorComponent {
       this.dragThreshold();
 
     if (moved) {
+      this.#onAreaSelectMove(event);
       this.#store.endAreaSelection();
     } else {
       this.#store.clearAreaSelection();
     }
     this.#endGesture();
+  }
+
+  /**
+   * The grid cell at a viewport point, whatever is painted over it.
+   *
+   * The whole stack at the point rather than just its top element: a widget
+   * is transparent to the pointer while a marquee runs, but its content area
+   * turns pointer events back on for the widget's own hover and click
+   * handling, so the topmost hit inside a widget is that content area and
+   * `closest()` from there finds no drop zone. Reading down the stack finds
+   * the zone underneath, so a sweep crosses widgets -- and ends over one --
+   * as if they were not there.
+   */
+  #cellFromPoint(x: number, y: number): GridPoint | null {
+    for (const element of document.elementsFromPoint(x, y)) {
+      const cell = this.#cellFromTarget(element);
+      if (cell) return cell;
+    }
+    return null;
   }
 
   #endGesture(): void {

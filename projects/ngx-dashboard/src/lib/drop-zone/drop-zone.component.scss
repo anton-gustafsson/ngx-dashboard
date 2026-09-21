@@ -47,15 +47,6 @@
     color-mix(in srgb, var(--mat-sys-primary) 50%, transparent);
 }
 
-// Cells inside the marked area. Tinted with the theme's primary, the same
-// colour the resize preview uses, so "the library is showing you a region"
-// reads as one language.
-.drop-zone--selected {
-  background-color: color-mix(in srgb, var(--mat-sys-primary) 22%, transparent);
-  outline: 1px solid color-mix(in srgb, var(--mat-sys-primary) 55%, transparent);
-  outline-offset: -1px;
-}
-
 // Edit mode cell numbers - centered in cell
 .edit-mode-cell-number {
   // Text styling

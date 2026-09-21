@@ -68,12 +68,30 @@ describe('DashboardEditorComponent - Area Selection', () => {
     fixture.detectChanges();
   }
 
+  /**
+   * Point the hit test at the cell at `row`/`col`.
+   *
+   * Returns the stack the browser would report, so a test can push something
+   * over the drop zone the way a widget's content area sits over one.
+   */
+  function hitStackForCell(row: number, col: number, over: Element[] = []) {
+    const zone = document.createElement('div');
+    zone.dataset['gridRow'] = String(row);
+    zone.dataset['gridCol'] = String(col);
+    return [...over, zone];
+  }
+
   /** Move the pointer over the cell at `row`/`col`. */
-  function pointerMoveToCell(row: number, col: number, x = 200, y = 200): void {
-    const target = document.createElement('div');
-    target.dataset['gridRow'] = String(row);
-    target.dataset['gridCol'] = String(col);
-    (document.elementFromPoint as jasmine.Spy).and.returnValue(target);
+  function pointerMoveToCell(
+    row: number,
+    col: number,
+    x = 200,
+    y = 200,
+    over: Element[] = []
+  ): void {
+    (document.elementsFromPoint as jasmine.Spy).and.returnValue(
+      hitStackForCell(row, col, over)
+    );
 
     document.dispatchEvent(
       new PointerEvent('pointermove', {
@@ -130,12 +148,12 @@ describe('DashboardEditorComponent - Area Selection', () => {
     fixture.componentRef.setInput('columns', 6);
     store.setAreaSelectionEnabled(true);
 
-    spyOn(document, 'elementFromPoint').and.returnValue(null);
+    spyOn(document, 'elementsFromPoint').and.returnValue([]);
 
     fixture.detectChanges();
   });
 
-  it('marks the swept rectangle and highlights the cells in it', () => {
+  it('marks the swept rectangle and outlines it as one region', () => {
     pointerDownOnCell(2, 2, 100, 100);
     pointerMoveToCell(3, 4, 160, 140);
     pointerUp(160, 140);
@@ -146,10 +164,43 @@ describe('DashboardEditorComponent - Area Selection', () => {
     });
     expect(store.isAreaSelecting()).toBeFalse();
 
-    const selectedZones = fixture.nativeElement.querySelectorAll(
-      '.drop-zone--selected'
+    // One overlay spanning the swept tracks, not a tint per cell.
+    const overlays = fixture.nativeElement.querySelectorAll(
+      '.area-selection-overlay'
     );
-    expect(selectedZones.length).toBe(6);
+    expect(overlays.length).toBe(1);
+    expect((overlays[0] as HTMLElement).style.gridRow).toBe('2 / 4');
+    expect((overlays[0] as HTMLElement).style.gridColumn).toBe('2 / 5');
+  });
+
+  it('keeps the overlay inside the grid a resize preview is shrinking', () => {
+    pointerDownOnCell(3, 3, 100, 100);
+    pointerMoveToCell(6, 6, 200, 200);
+    pointerUp(200, 200);
+
+    // 6x6 down to 4x4: the rectangle's far edge is now off the grid, and an
+    // overlay reaching past the last track would grow an implicit one.
+    store.previewGridResize(-2, -2);
+    fixture.detectChanges();
+
+    const overlay = fixture.nativeElement.querySelector(
+      '.area-selection-overlay'
+    ) as HTMLElement;
+    expect(overlay.style.gridRow).toBe('3 / 5');
+    expect(overlay.style.gridColumn).toBe('3 / 5');
+  });
+
+  it('draws no overlay for a region the grid no longer reaches', () => {
+    pointerDownOnCell(5, 5, 100, 100);
+    pointerMoveToCell(6, 6, 200, 200);
+    pointerUp(200, 200);
+
+    store.previewGridResize(-2, -2);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.area-selection-overlay')
+    ).toBeNull();
   });
 
   it('reports the widgets the rectangle caught', () => {
@@ -162,6 +213,48 @@ describe('DashboardEditorComponent - Area Selection', () => {
     pointerUp(150, 150);
 
     expect(store.selectedWidgetIds()).toEqual([inside]);
+  });
+
+  it('keeps extending across a widget, whose content area takes the pointer', () => {
+    seedWidget(3, 3);
+    fixture.detectChanges();
+
+    // What the browser reports over a widget: its content area is on top and
+    // has pointer events of its own, with the drop zone beneath it.
+    const contentArea = document.createElement('div');
+    contentArea.className = 'content-area';
+
+    pointerDownOnCell(2, 2, 100, 100);
+    pointerMoveToCell(3, 3, 150, 150, [contentArea]);
+
+    expect(store.areaSelection()).toEqual({
+      topLeft: { row: 2, col: 2 },
+      bottomRight: { row: 3, col: 3 },
+    });
+  });
+
+  it('ends on the cell the pointer was released over, widget or not', () => {
+    seedWidget(4, 4);
+    fixture.detectChanges();
+
+    const contentArea = document.createElement('div');
+    contentArea.className = 'content-area';
+
+    pointerDownOnCell(2, 2, 100, 100);
+    pointerMoveToCell(3, 3, 150, 150);
+
+    // The release lands on the widget at 4,4 without a move reporting it
+    // first -- a fast drag off the last empty cell does exactly this.
+    (document.elementsFromPoint as jasmine.Spy).and.returnValue(
+      hitStackForCell(4, 4, [contentArea])
+    );
+    pointerUp(200, 200);
+
+    expect(store.areaSelection()).toEqual({
+      topLeft: { row: 2, col: 2 },
+      bottomRight: { row: 4, col: 4 },
+    });
+    expect(store.selectedWidgetIds().length).toBe(1);
   });
 
   it('does not start a marquee while the gesture is disabled', () => {

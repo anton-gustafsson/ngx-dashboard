@@ -72,8 +72,18 @@
   z-index: 1;
 }
 
-#top-grid {
+/* The marked region, between the drop zones and the widgets: the fill reads
+   as a region, and the widgets inside it stay legible on top. Inherits the
+   grid template from .grid so it lines up with the tracks, minus that class's
+   grid-line artwork, which is already drawn underneath. */
+#selection-grid {
   z-index: 2;
+  pointer-events: none;
+  background-image: none;
+}
+
+#top-grid {
+  z-index: 3;
   pointer-events: none; /* overlay shouldn’t block interactions */
 }
 
@@ -98,6 +108,30 @@
 
   .grid-cell {
     pointer-events: none;
+  }
+}
+
+/* One filled, outlined rectangle spanning the marked tracks.
+
+   The themed colours sit behind an @supports test because the Material
+   tokens resolve to light-dark(), which color-mix() cannot take apart in a
+   browser that lacks it -- the mix is then invalid at computed-value time
+   and the region renders as nothing at all. The fallback is the blue the
+   resize preview already uses, so the region is always visible and matches
+   the theme wherever the browser can. */
+.area-selection-overlay {
+  border-radius: 4px;
+
+  background-color: rgba(33, 150, 243, 0.16);
+  border: 2px solid rgba(33, 150, 243, 0.6);
+
+  @supports (color: light-dark(#000, #fff)) {
+    background-color: color-mix(
+      in srgb,
+      var(--mat-sys-primary) 16%,
+      transparent
+    );
+    border-color: color-mix(in srgb, var(--mat-sys-primary) 60%, transparent);
   }
 }
 

@@ -5,6 +5,12 @@
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+
+  // The page's own text -- labels, hints, the selection count -- inherits
+  // from here. Without it they fall back to the initial colour, which stays
+  // black when the theme flips to dark; Material's own components carry their
+  // colours with them and are unaffected either way.
+  color: var(--mat-sys-on-surface);
 }
 
 .intro,
