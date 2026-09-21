@@ -10,7 +10,10 @@ export { DashboardComponent } from './lib/dashboard/dashboard.component';
 export { WidgetListComponent } from './lib/widget-list/widget-list.component';
 
 // Dashboard viewer types (for selection feature)
-export type { GridSelection } from './lib/models/grid-selection';
+export type { GridSelection, GridPoint } from './lib/models/grid-selection';
+// Rectangle geometry, so a host can answer "is this widget in the marked
+// area" with the same rules the library used to mark it
+export { GridSelectionUtils } from './lib/models/grid-selection';
 export type { GridResizeResult } from './lib/models/grid-resize-result';
 
 // Grid geometry (rows, columns, gutter)

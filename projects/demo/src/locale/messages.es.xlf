@@ -25,6 +25,12 @@
         <target>Radial Gauge Demo</target>
       </segment>
     </unit>
+    <unit id="demo.navigation.areaSelection">
+      <segment state="initial">
+        <source>Area Selection</source>
+        <target>Area Selection</target>
+      </segment>
+    </unit>
     <unit id="demo.navigation.colors">
       <segment state="initial">
         <source>Colors Overview</source>
@@ -35,6 +41,132 @@
       <segment state="initial">
         <source>Dashboard Demo</source>
         <target>Dashboard Demo</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.clear">
+      <segment state="initial">
+        <source>Clear</source>
+        <target>Clear</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.confirmBody">
+      <segment state="initial">
+        <source> <ph id="0" equiv="INTERPOLATION" disp="{{ data.count }}"/> widgets are in the marked area. Deleting cannot be undone. </source>
+        <target> <ph id="0" equiv="INTERPOLATION" disp="{{ data.count }}"/> widgets are in the marked area. Deleting cannot be undone. </target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.confirmDelete">
+      <segment state="initial">
+        <source>Delete</source>
+        <target>Delete</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.confirmTitle">
+      <segment state="initial">
+        <source> Delete selected widgets? </source>
+        <target> Delete selected widgets? </target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.confirmToggle">
+      <segment state="initial">
+        <source>Confirm before deleting</source>
+        <target>Confirm before deleting</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.copyRegion">
+      <segment state="initial">
+        <source>Copy region</source>
+        <target>Copy region</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.delete">
+      <segment state="initial">
+        <source>Delete</source>
+        <target>Delete</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.explanation">
+      <segment state="initial">
+        <source><pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">[enableAreaSelection]</pc> arms the marquee in the editor: drag from an empty cell and every widget the rectangle touches is marked. The dashboard reports the settled rectangle through <pc id="1" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">(areaSelectionChange)</pc>, names what it caught through <pc id="2" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">selectedWidgetIds()</pc>, and removes it when the app calls <pc id="3" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">deleteSelectedWidgets()</pc>. No keystroke is bound by the library, which is why the binding below is this page&apos;s to choose. </source>
+        <target><pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">[enableAreaSelection]</pc> arms the marquee in the editor: drag from an empty cell and every widget the rectangle touches is marked. The dashboard reports the settled rectangle through <pc id="1" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">(areaSelectionChange)</pc>, names what it caught through <pc id="2" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">selectedWidgetIds()</pc>, and removes it when the app calls <pc id="3" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">deleteSelectedWidgets()</pc>. No keystroke is bound by the library, which is why the binding below is this page&apos;s to choose. </target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.exportSubtitle">
+      <segment state="initial">
+        <source>exportDashboard(selection) lifts out the widgets that fit entirely inside the rectangle — the same selection, read the other way</source>
+        <target>exportDashboard(selection) lifts out the widgets that fit entirely inside the rectangle — the same selection, read the other way</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.exportTitle">
+      <segment state="initial">
+        <source>Exported region</source>
+        <target>Exported region</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.hintButtons">
+      <segment state="initial">
+        <source>Sweep an empty cell, then use the buttons below</source>
+        <target>Sweep an empty cell, then use the buttons below</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.hintCtrlBackspace">
+      <segment state="initial">
+        <source>Sweep an empty cell, then press Ctrl+Backspace</source>
+        <target>Sweep an empty cell, then press Ctrl+Backspace</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.hintDelete">
+      <segment state="initial">
+        <source>Sweep an empty cell, then press Delete</source>
+        <target>Sweep an empty cell, then press Delete</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.keybindingLabel">
+      <segment state="initial">
+        <source>Delete binding</source>
+        <target>Delete binding</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.keybindingNone">
+      <segment state="initial">
+        <source>None</source>
+        <target>None</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.removedCount">
+      <segment state="initial">
+        <source>Removed <ph id="0" equiv="COUNT" disp="removed"/> widgets</source>
+        <target>Removed <ph id="0" equiv="COUNT" disp="removed"/> widgets</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.reset">
+      <segment state="initial">
+        <source>Reset board</source>
+        <target>Reset board</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.selectProgrammatically">
+      <segment state="initial">
+        <source>Mark rows 1–3 from code</source>
+        <target>Mark rows 1–3 from code</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.subtitle">
+      <segment state="initial">
+        <source>The library marks a region and says what is in it. Everything else on this page — the key that deletes, the confirm dialog, the toolbar — is application code.</source>
+        <target>The library marks a region and says what is in it. Everything else on this page — the key that deletes, the confirm dialog, the toolbar — is application code.</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.title">
+      <segment state="initial">
+        <source>Area selection</source>
+        <target>Area selection</target>
+      </segment>
+    </unit>
+    <unit id="demo.areaSelection.widgetsSelected">
+      <segment state="initial">
+        <source>widgets selected</source>
+        <target>widgets selected</target>
       </segment>
     </unit>
     <unit id="demo.theme.switchToLight">

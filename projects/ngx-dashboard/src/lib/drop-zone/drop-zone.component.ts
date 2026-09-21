@@ -33,6 +33,8 @@ export class DropZoneComponent {
   highlightInvalid = input(false);
   highlightResize = input(false);
   highlightPreview = input(false);
+  /** Inside the marked area. See `DashboardComponent.enableAreaSelection`. */
+  selected = input(false);
   editMode = input(false);
 
   // Outputs

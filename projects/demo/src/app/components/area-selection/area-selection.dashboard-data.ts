@@ -1,0 +1,111 @@
+import { DashboardDataDto } from '@dragonworks/ngx-dashboard';
+
+/**
+ * A small board with enough widgets that a swept region catches several of
+ * them, and enough empty space to start a marquee anywhere.
+ */
+export const AREA_SELECTION_DASHBOARD: DashboardDataDto = {
+  version: '1.1.0',
+  dashboardId: 'demo-area-selection',
+  rows: 6,
+  columns: 10,
+  gutterSize: '0.5em',
+  cells: [
+    {
+      row: 1,
+      col: 1,
+      rowSpan: 1,
+      colSpan: 3,
+      flat: true,
+      widgetTypeid: '@ngx-dashboard/label-widget',
+      widgetState: {
+        label: 'North',
+        fontSize: 16,
+        alignment: 'center',
+        hasBackground: false,
+        responsive: true,
+      },
+    },
+    {
+      row: 2,
+      col: 1,
+      rowSpan: 2,
+      colSpan: 2,
+      widgetTypeid: '@ngx-dashboard/radial-gauge-widget',
+      widgetState: { value: 62 },
+    },
+    {
+      row: 2,
+      col: 3,
+      rowSpan: 2,
+      colSpan: 2,
+      widgetTypeid: '@ngx-dashboard/radial-gauge-widget',
+      widgetState: { value: 28 },
+    },
+    {
+      row: 1,
+      col: 6,
+      rowSpan: 1,
+      colSpan: 3,
+      flat: true,
+      widgetTypeid: '@ngx-dashboard/label-widget',
+      widgetState: {
+        label: 'South',
+        fontSize: 16,
+        alignment: 'center',
+        hasBackground: false,
+        responsive: true,
+      },
+    },
+    {
+      row: 2,
+      col: 6,
+      rowSpan: 2,
+      colSpan: 2,
+      widgetTypeid: '@ngx-dashboard/radial-gauge-widget',
+      widgetState: { value: 81 },
+    },
+    {
+      row: 2,
+      col: 8,
+      rowSpan: 2,
+      colSpan: 3,
+      widgetTypeid: '@ngx-dashboard/clock-widget',
+      widgetState: undefined,
+    },
+    {
+      row: 5,
+      col: 2,
+      rowSpan: 2,
+      colSpan: 4,
+      widgetTypeid: '@ngx-dashboard/clock-widget',
+      widgetState: undefined,
+    },
+    {
+      row: 5,
+      col: 7,
+      rowSpan: 1,
+      colSpan: 1,
+      flat: true,
+      widgetTypeid: '@ngx-dashboard/arrow-widget',
+      widgetState: { direction: 'right', opacity: 0.4, hasBackground: false },
+    },
+    {
+      row: 6,
+      col: 7,
+      rowSpan: 1,
+      colSpan: 1,
+      flat: true,
+      widgetTypeid: '@ngx-dashboard/arrow-widget',
+      widgetState: { direction: 'left', opacity: 0.4, hasBackground: false },
+    },
+    {
+      row: 5,
+      col: 9,
+      rowSpan: 2,
+      colSpan: 2,
+      widgetTypeid: '@ngx-dashboard/radial-gauge-widget',
+      widgetState: { value: 45 },
+    },
+  ],
+};

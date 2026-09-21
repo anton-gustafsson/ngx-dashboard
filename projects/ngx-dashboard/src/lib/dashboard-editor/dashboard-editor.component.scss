@@ -86,6 +86,21 @@
   opacity: 0.5;
 }
 
+/* ── Area selection ──────────────────────────────────────────────── */
+
+/* While a marquee is being drawn the widgets step out of the way: the pointer
+   has to keep resolving to the grid cell underneath one, and the gesture must
+   not turn into a page scroll on touch. Widgets re-enable pointer events on
+   release, which is the whole of the interaction's state. */
+.grid-container.is-area-selecting {
+  touch-action: none;
+  cursor: crosshair;
+
+  .grid-cell {
+    pointer-events: none;
+  }
+}
+
 /* ── Grid resize preview badge ───────────────────────────────────── */
 .grid-resize-badge {
   position: absolute;

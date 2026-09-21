@@ -6,6 +6,7 @@
     [rows]="store.rows()"
     [columns]="store.columns()"
     [gutterSize]="store.gutterSize()"
+    [dragThreshold]="dragThreshold()"
     (gridResized)="onEditorGridResized($event)"
   ></ngx-dashboard-editor>
   } @else {

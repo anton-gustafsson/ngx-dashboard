@@ -1,0 +1,133 @@
+<div class="area-selection-page">
+  <mat-card appearance="outlined" class="intro">
+    <mat-card-header>
+      <mat-card-title i18n="@@demo.areaSelection.title"
+        >Area selection</mat-card-title
+      >
+      <mat-card-subtitle i18n="@@demo.areaSelection.subtitle"
+        >The library marks a region and says what is in it. Everything else on
+        this page — the key that deletes, the confirm dialog, the toolbar — is
+        application code.</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-card-content>
+      <p i18n="@@demo.areaSelection.explanation">
+        <code>[enableAreaSelection]</code> arms the marquee in the editor: drag
+        from an empty cell and every widget the rectangle touches is marked.
+        The dashboard reports the settled rectangle through
+        <code>(areaSelectionChange)</code>, names what it caught through
+        <code>selectedWidgetIds()</code>, and removes it when the app calls
+        <code>deleteSelectedWidgets()</code>. No keystroke is bound by the
+        library, which is why the binding below is this page's to choose.
+      </p>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="controls">
+    <div class="control">
+      <span class="control-label" i18n="@@demo.areaSelection.keybindingLabel"
+        >Delete binding</span
+      >
+      <mat-button-toggle-group
+        [value]="keybinding()"
+        (change)="keybinding.set($event.value)"
+        hideSingleSelectionIndicator
+      >
+        <mat-button-toggle value="delete">Delete</mat-button-toggle>
+        <mat-button-toggle value="ctrlBackspace">Ctrl+Backspace</mat-button-toggle>
+        <mat-button-toggle value="none" i18n="@@demo.areaSelection.keybindingNone"
+          >None</mat-button-toggle
+        >
+      </mat-button-toggle-group>
+    </div>
+
+    <mat-slide-toggle
+      [checked]="confirmBeforeDelete()"
+      (change)="confirmBeforeDelete.set($event.checked)"
+      i18n="@@demo.areaSelection.confirmToggle"
+      >Confirm before deleting</mat-slide-toggle
+    >
+
+    <span class="spacer"></span>
+
+    <button mat-stroked-button (click)="resetBoard()">
+      <mat-icon>restart_alt</mat-icon>
+      <span i18n="@@demo.areaSelection.reset">Reset board</span>
+    </button>
+  </div>
+
+  <!-- The app's own chrome for the selection. The library ships no badge, so
+       a host is free to put the count wherever its layout wants it. -->
+  <div class="selection-bar" [class.selection-bar--active]="hasSelection()">
+    @if (hasSelection()) {
+    <mat-icon>select_all</mat-icon>
+    <span class="selection-count">
+      <strong>{{ selectedCount() }}</strong>
+      <span i18n="@@demo.areaSelection.widgetsSelected">widgets selected</span>
+    </span>
+    <span class="selection-rect">{{ selectionLabel() }}</span>
+    } @else {
+    <mat-icon>highlight_alt</mat-icon>
+    <span>{{ deleteHint() }}</span>
+    }
+
+    <span class="spacer"></span>
+
+    <button mat-button [disabled]="!hasSelection()" (click)="copySelection()">
+      <mat-icon>content_copy</mat-icon>
+      <span i18n="@@demo.areaSelection.copyRegion">Copy region</span>
+    </button>
+    <button mat-button [disabled]="!hasSelection()" (click)="clearSelection()">
+      <mat-icon>close</mat-icon>
+      <span i18n="@@demo.areaSelection.clear">Clear</span>
+    </button>
+    <button
+      mat-flat-button
+      color="warn"
+      [disabled]="selectedCount() === 0"
+      (click)="deleteSelection()"
+    >
+      <mat-icon>delete</mat-icon>
+      <span i18n="@@demo.areaSelection.delete">Delete</span>
+    </button>
+  </div>
+
+  <div class="board">
+    <ngx-dashboard
+      [dashboardData]="dashboardData"
+      [editMode]="true"
+      [enableAreaSelection]="true"
+      (areaSelectionChange)="onAreaSelectionChange($event)"
+    ></ngx-dashboard>
+  </div>
+
+  <div class="footer-actions">
+    <button mat-stroked-button (click)="selectTopRow()">
+      <mat-icon>crop_free</mat-icon>
+      <span i18n="@@demo.areaSelection.selectProgrammatically"
+        >Mark rows 1–3 from code</span
+      >
+    </button>
+    @if (lastAction(); as action) {
+    <span class="last-action">{{ action }}</span>
+    }
+  </div>
+
+  @if (copiedJson(); as json) {
+  <mat-card appearance="outlined" class="export">
+    <mat-card-header>
+      <mat-card-title i18n="@@demo.areaSelection.exportTitle"
+        >Exported region</mat-card-title
+      >
+      <mat-card-subtitle i18n="@@demo.areaSelection.exportSubtitle"
+        >exportDashboard(selection) lifts out the widgets that fit entirely
+        inside the rectangle — the same selection, read the other
+        way</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-card-content>
+      <pre class="export-json">{{ json }}</pre>
+    </mat-card-content>
+  </mat-card>
+  }
+</div>

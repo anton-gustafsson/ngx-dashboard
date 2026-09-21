@@ -25,14 +25,17 @@ import {
   UNKNOWN_WIDGET_TYPEID,
   WidgetIdUtils,
   GridSelection,
+  GridSelectionUtils,
   GridResizeResult,
   SelectionFilterOptions,
+  WidgetId,
 } from '../models';
 import { withGridConfig } from './features/grid-config.feature';
 import { withWidgetManagement } from './features/widget-management.feature';
 import { withDragDrop } from './features/drag-drop.feature';
 import { withResize, ResizePreviewUtils } from './features/resize.feature';
 import { withGridResize } from './features/grid-resize.feature';
+import { withAreaSelection } from './features/area-selection.feature';
 
 /** Returns the intended widget type ID, falling back to the factory's type ID */
 function effectiveWidgetTypeid(cell: CellData): string {
@@ -57,6 +60,7 @@ export const DashboardStore = signalStore(
   withResize(),
   withGridResize(),
   withDragDrop(),
+  withAreaSelection(),
 
   // Cross-feature computed properties (need access to multiple features)
   withComputed((store) => ({
@@ -83,6 +87,31 @@ export const DashboardStore = signalStore(
     // being snapped back. Shares minGridSizeFor with clampGridSize, so the
     // limit shown and the limit enforced cannot drift.
     minGridSize: computed(() => minGridSizeFor(store.cells())),
+
+    // The widgets the marked region caught. The rectangle lives in one
+    // feature and the widgets in another, so the join belongs here — and
+    // doing it once means the highlight, a host's count badge and a delete
+    // can never disagree about what is selected.
+    //
+    // Overlap rather than containment: this answers "what is in this area",
+    // where a widget hanging half out of the swept rectangle plainly is.
+    selectedWidgetIds: computed(
+      () => {
+        const selection = store.areaSelection();
+        if (!selection) return [] as WidgetId[];
+
+        return store
+          .cells()
+          .filter((cell) => GridSelectionUtils.overlapsFootprint(selection, cell))
+          .map((cell) => cell.widgetId);
+      },
+      {
+        // Growing the rectangle over empty cells recomputes this and lands on
+        // the same widgets; comparing by value keeps that from re-rendering
+        // whatever a host has bound to it.
+        equal: (a, b) => a.length === b.length && a.every((id, i) => id === b[i]),
+      }
+    ),
 
     // Invalid zones (collision detection)
     invalidHighlightMap: computed(() => {
@@ -159,6 +188,23 @@ export const DashboardStore = signalStore(
           }
         },
       });
+    },
+
+    /**
+     * Remove every widget the marked region caught, and drop the marks.
+     *
+     * The one mutation the selection feature offers. What triggers it — a
+     * key, a toolbar button, a confirmed dialog — is the host's to decide,
+     * so the library exposes the verb and no gesture for it. Returns how
+     * many widgets went, which is 0 when nothing was marked.
+     */
+    deleteSelectedWidgets(): number {
+      const widgetIds = store.selectedWidgetIds();
+      if (widgetIds.length === 0) return 0;
+
+      const removed = store.removeWidgets(widgetIds);
+      store.clearAreaSelection();
+      return removed;
     },
 
     // GRID RESIZE (change row/column counts on a populated dashboard)
@@ -269,6 +315,11 @@ export const DashboardStore = signalStore(
     },
 
     loadDashboard(data: DashboardDataDto): void {
+      // A marked region describes the dashboard being replaced, so it cannot
+      // outlive it: the same rectangle over new widgets would mean something
+      // else entirely.
+      store.clearAreaSelection();
+
       // Restore shared states FIRST, before creating widget instances
       if (data.sharedStates) {
         const statesMap = new Map(Object.entries(data.sharedStates));

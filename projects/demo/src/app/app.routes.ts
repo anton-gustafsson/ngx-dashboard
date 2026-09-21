@@ -14,6 +14,10 @@ export const routes: Routes = [
     loadComponent: () => import('./components/radial-gauge-demo/radial-gauge-demo.component').then(m => m.RadialGaugeDemoComponent)
   },
   {
+    path: 'area-selection',
+    loadComponent: () => import('./components/area-selection/area-selection.component').then(m => m.AreaSelectionComponent)
+  },
+  {
     path: 'error-views',
     loadComponent: () => import('./components/error-views/error-views.component').then(m => m.ErrorViewsComponent)
   },

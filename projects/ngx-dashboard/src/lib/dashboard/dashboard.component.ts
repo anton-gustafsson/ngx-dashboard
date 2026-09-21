@@ -31,6 +31,7 @@ import {
   GridConfig,
   GridResizeResult,
   GridSelection,
+  GridSelectionUtils,
   SelectionFilterOptions,
   SelectionModifier,
 } from '../models';
@@ -71,6 +72,25 @@ export class DashboardComponent implements OnChanges {
   enableSelection = input<boolean>(false);
   selectionModifier = input<SelectionModifier | null>(null);
   dragThreshold = input<number>(4);
+
+  /**
+   * Let the user sweep out a region of the editor grid.
+   *
+   * Off by default: it claims the left-drag on empty cells, which an editor
+   * embedded in a host with its own gesture there may not want to give up.
+   *
+   * The marquee starts on an empty cell -- dragging a widget still moves it
+   * -- and marks every widget whose footprint the rectangle touches. What
+   * happens next is the host's call: read `selectedWidgetIds()`, bind
+   * whatever key or button fits the app, and call `deleteSelectedWidgets()`
+   * (or `exportDashboard(selection)` to copy the region out). The library
+   * binds no keystroke of its own, so `Delete`, `Escape` and the rest stay
+   * yours.
+   *
+   * Separate from `enableSelection`, which is the viewer's read-only "hand
+   * me a rectangle" gesture.
+   */
+  enableAreaSelection = input<boolean>(false);
 
   /**
    * Optional CSS length for the gutter between cells (e.g. `'0.5em'`).
@@ -115,6 +135,15 @@ export class DashboardComponent implements OnChanges {
   gridResized = output<GridResizeResult>();
 
   /**
+   * The marked editor region changed -- a gesture drew one, a gesture or
+   * `clearAreaSelection()` dropped it (`null`), or `selectArea()` set one.
+   *
+   * Fires on the settled rectangle, not on every cell the pointer crosses
+   * mid-drag, so a host can hang a dialog or a toolbar off it directly.
+   */
+  areaSelectionChange = output<GridSelection | null>();
+
+  /**
    * Emits on any committed geometry change — size or gutter, handle-driven or
    * programmatic. Does not fire for `loadDashboard()`, which the host
    * initiated itself.
@@ -146,6 +175,17 @@ export class DashboardComponent implements OnChanges {
    */
   readonly gridSizeLimits = this.#store.gridSizeLimits;
 
+  /** The marked editor region, or `null`. See `enableAreaSelection`. */
+  readonly areaSelection = this.#store.areaSelection;
+
+  /**
+   * The widgets the marked region caught, by id -- every widget whose
+   * footprint the rectangle overlaps, including one hanging half out of it.
+   * Empty when nothing is marked, so `selectedWidgetIds().length` is the
+   * count a host renders.
+   */
+  readonly selectedWidgetIds = this.#store.selectedWidgetIds;
+
   // ViewChild references for export/import functionality
   private dashboardEditor = viewChild(DashboardEditorComponent);
   private dashboardViewer = viewChild(DashboardViewerComponent);
@@ -154,6 +194,9 @@ export class DashboardComponent implements OnChanges {
   #isPreservingStates = false;
   // Track if component has been initialized
   #isInitialized = false;
+  // Last rectangle handed to areaSelectionChange, so the settling of a
+  // gesture on the rectangle it already had stays silent.
+  #lastEmittedSelection: GridSelection | null = null;
 
   constructor() {
     // Cleanup registration when component is destroyed
@@ -195,6 +238,27 @@ export class DashboardComponent implements OnChanges {
     this.#seed(this.showWidgetNames, (showWidgetNames) =>
       this.#store.setShowWidgetNames(showWidgetNames)
     );
+
+    this.#seed(this.enableAreaSelection, (enabled) =>
+      this.#store.setAreaSelectionEnabled(enabled)
+    );
+
+    // Report the settled rectangle. Read through the store rather than
+    // plumbed up from the editor, so a programmatic selectArea() reaches the
+    // host on the same path a gesture does — and so the editor stays a view
+    // over the store instead of a second source of selection events.
+    effect(() => {
+      const selection = this.areaSelection();
+      const isSelecting = this.store.isAreaSelecting();
+      untracked(() => {
+        if (isSelecting) return;
+        if (GridSelectionUtils.equals(this.#lastEmittedSelection, selection)) {
+          return;
+        }
+        this.#lastEmittedSelection = selection;
+        this.areaSelectionChange.emit(selection);
+      });
+    });
 
     // Sync reserved space input with viewport service
     this.#seed(this.reservedSpace, (reserved) =>
@@ -308,6 +372,38 @@ export class DashboardComponent implements OnChanges {
 
   clearDashboard(): void {
     this.#store.clearDashboard();
+    // Nothing is left to select, and a rectangle marking an empty grid would
+    // still report itself through `areaSelection()`.
+    this.#store.clearAreaSelection();
+  }
+
+  /**
+   * Mark a region without a gesture -- to preselect one, or to re-mark a
+   * region read earlier from `areaSelection()`. Pass `null`, or call
+   * `clearAreaSelection()`, to drop the marks.
+   *
+   * Independent of `enableAreaSelection`, which gates the pointer gesture
+   * rather than the API.
+   */
+  selectArea(selection: GridSelection | null): void {
+    this.#store.setAreaSelection(selection);
+  }
+
+  /** Drop the marked editor region. See also `clearSelection()`, which is
+   *  the viewer's equivalent. */
+  clearAreaSelection(): void {
+    this.#store.clearAreaSelection();
+  }
+
+  /**
+   * Remove every widget the marked region caught, drop the marks, and report
+   * how many went. No-op returning 0 when nothing is marked.
+   *
+   * The host owns the trigger: bind it to a key, a button, or the resolution
+   * of a confirm dialog. Nothing in the library calls it.
+   */
+  deleteSelectedWidgets(): number {
+    return this.#store.deleteSelectedWidgets();
   }
 
   /**

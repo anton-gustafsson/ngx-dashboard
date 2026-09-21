@@ -82,6 +82,33 @@ export const withWidgetManagement = () =>
         patchState(store, { widgetsById: remaining });
       },
 
+      /**
+       * Remove several widgets at once.
+       *
+       * One patch rather than a loop over `removeWidget`, so clearing a
+       * marked region is a single state write: every `cells()` consumer —
+       * every drop zone, every rendered widget — reacts once instead of once
+       * per widget. Unknown ids are ignored, and a call that removes nothing
+       * leaves the state object untouched.
+       */
+      removeWidgets(widgetIds: readonly WidgetId[]) {
+        const remaining = { ...store.widgetsById() };
+        let removed = 0;
+
+        for (const widgetId of widgetIds) {
+          const widgetKey = WidgetIdUtils.toString(widgetId);
+          if (widgetKey in remaining) {
+            delete remaining[widgetKey];
+            removed++;
+          }
+        }
+
+        if (removed === 0) return 0;
+
+        patchState(store, { widgetsById: remaining });
+        return removed;
+      },
+
       updateWidgetPosition(widgetId: WidgetId, row: number, col: number) {
         const widgetKey = WidgetIdUtils.toString(widgetId);
         const existingWidget = store.widgetsById()[widgetKey];

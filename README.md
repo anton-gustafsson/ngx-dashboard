@@ -63,6 +63,7 @@ Core dashboard library providing the fundamental grid and widget management syst
 - **Grid Geometry API** - Rows, columns, and gutter settable at runtime, with clamp-to-content resizing that never orphans a widget
 - **Cell Components** - Cells resizable on both axes (right, bottom, and corner handles) with live preview, context menus, and dual flat/elevated appearance modes
 - **Cell Selection** - Optional snap-to-grid rectangle selection with modifier-key gating, a click-vs-drag threshold, and pointer support for mouse, touch, and pen
+- **Area Selection** - Marquee a region of the editor grid and read back the widgets it caught, then delete or export them on your own key, button, or confirm dialog
 - **Widget Palette** - Collapsible widget groups, an opt-in search box, and optional per-cell name badges for reading a crowded grid
 - **Widget Family Shared State** - Configuration shared across every instance of a widget type, serialized alongside the dashboard ([detailed docs](docs/widget-shared-state-guide.md))
 - **Extensible Provider System** - Dependency injection-based architecture enabling custom dialog and UI implementations ([detailed docs](docs/provider-system-architecture.md))
@@ -89,6 +90,7 @@ Interactive demonstration showcasing real-world usage patterns:
 - **Widget Gallery** - Drag-and-drop widget installation from a grouped, searchable palette
 - **Custom Widgets** - Sparkline and Sparkbar charts with theme-responsive colors, a Temperature widget demonstrating shared state, and a Realtime Gauge built by composition
 - **Custom Error Views** - A board of three cells whose widget types are all missing: `UNKNOWN_WIDGET_RESOLVER` answers with a "withheld" view, a "module not loaded" view, and the library's own default. Each type can be registered and unregistered to watch its cell heal in place
+- **Area Selection** - A page that owns the policy the library leaves out: the delete key is rebindable, the confirm dialog is optional, and the count, the toolbar and the region export are all application code
 - **Selection & Zoom** - Rectangle selection driving a non-destructive zoom into a minimal bounding box
 - **Persistence** - localStorage and file system persistence implementations
 

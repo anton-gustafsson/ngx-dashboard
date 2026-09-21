@@ -468,6 +468,7 @@ dashboardReservedSpace = computed((): ReservedSpace => ({
 | `gutterSize` | `string` | — | CSS length for the gutter (`px`/`em`/`rem` only). A seed, not a binding: an invalid value is ignored, and a later `loadDashboard()` still wins |
 | `maxRows` | `number` | `64` | Ceiling for any resize. The clamp-to-content floor outranks it, so an imported dashboard never loses widgets |
 | `maxColumns` | `number` | `128` | As above, for columns |
+| `enableAreaSelection` | `boolean` | `false` | Arms the marquee in the **editor**: drag from an empty cell to mark a region. Marking only — the library binds no key and deletes nothing on its own |
 | `showWidgetNames` | `boolean` | `false` | Corner badge naming each widget's type — a reading aid for crowded grids. A view preference; it is not written to the exported DTO |
 
 ### Outputs
@@ -475,6 +476,7 @@ dashboardReservedSpace = computed((): ReservedSpace => ({
 | Output | Payload | Fires when |
 | --- | --- | --- |
 | `selectionComplete` | `GridSelection` | A selection gesture ends above `dragThreshold`. The rectangle stays on screen afterwards so you can render confirm UX over it — call `clearSelection()` when done |
+| `areaSelectionChange` | `GridSelection \| null` | The marked editor region settles, or is dropped (`null`). Fires on the settled rectangle, not on every cell a drag crosses |
 | `gridResized` | `GridResizeResult` | The grid size changes. Carries `clamped`, so you can tell the user they hit a limit |
 | `gridConfigChanged` | `GridConfig` | Any committed geometry change, gutter included. The autosave hook — but every intermediate state of a live editor emits, so debounce |
 
@@ -497,12 +499,19 @@ dashboard().setGridSize(10, 20);                // GridResizeResult, reports cla
 dashboard().setGutterSize('1em');               // returns the gutter actually applied
 
 // Selection
-dashboard().clearSelection();                   // drop the rectangle after confirm UX
+dashboard().clearSelection();                   // drop the viewer's rectangle after confirm UX
+
+// Area selection (editor)
+dashboard().selectArea(selection);              // mark a region without a gesture (null clears)
+dashboard().clearAreaSelection();               // drop the marks
+dashboard().deleteSelectedWidgets();            // remove what the marks caught; returns the count
 
 // Readonly signals
 dashboard().gridConfig();                       // committed geometry, never a drag preview
 dashboard().minGridSize();                      // clamp-to-content floor
 dashboard().gridSizeLimits();                   // ceiling from maxRows / maxColumns
+dashboard().areaSelection();                    // the marked editor region, or null
+dashboard().selectedWidgetIds();                // what it caught; .length is the count to show
 ```
 
 `exportDashboard(selection, options)` filters to a region. `SelectionFilterOptions`
@@ -864,6 +873,71 @@ Two inputs keep selection from fighting the widgets underneath it:
 
 Selection is pointer-based, so mouse, touch and pen all work. It is viewer-only —
 `editMode` takes precedence.
+
+### Area Selection and Deleting (Editor)
+
+`enableAreaSelection` arms a marquee in the editor: drag from an empty cell and the
+rectangle marks every widget whose footprint it touches. That is all the library
+does with it. It binds no keystroke, shows no badge and deletes nothing by itself —
+so `Delete`, `Escape` and any confirm step stay yours to spend.
+
+```typescript
+@Component({
+  template: `
+    <ngx-dashboard
+      #dashboard
+      [dashboardData]="config"
+      [editMode]="true"
+      [enableAreaSelection]="true"
+      (areaSelectionChange)="selection.set($event)"
+    />
+  `,
+})
+export class EditableDashboardComponent {
+  private readonly dashboard = viewChild.required<NgxDashboardComponent>('dashboard');
+  protected readonly selection = signal<GridSelection | null>(null);
+
+  // The app owns the binding — rebind it, gate it on a mode, or drop it and
+  // drive the delete from a toolbar button instead.
+  @HostListener('document:keydown', ['$event'])
+  async onKeyDown(event: KeyboardEvent): Promise<void> {
+    if (!this.selection() || event.key !== 'Delete') return;
+    event.preventDefault();
+
+    const count = this.dashboard().selectedWidgetIds().length;
+    // The marks survive a cancelled dialog: only deleteSelectedWidgets() drops
+    // them, so the user keeps seeing what they were about to lose.
+    if (!(await this.confirm(count))) return;
+
+    const removed = this.dashboard().deleteSelectedWidgets();
+    this.notify(`Removed ${removed} widgets`);
+  }
+}
+```
+
+What each piece answers:
+
+- **`areaSelection()` / `(areaSelectionChange)`** — the rectangle, normalized
+  whichever way the drag went, or `null`. The event fires on the settled rectangle,
+  including when `selectArea()` set it, so one handler covers both paths.
+- **`selectedWidgetIds()`** — the widgets the rectangle *overlaps*, including one
+  hanging half out of it: this answers "what is in this area". Empty when nothing is
+  marked, so `.length` is the count to render.
+- **`deleteSelectedWidgets()`** — removes exactly those widgets in one state write,
+  drops the marks, and returns how many went (`0` when nothing was marked).
+- **`selectArea()` / `clearAreaSelection()`** — the same marking, without a gesture.
+  Independent of `enableAreaSelection`, which gates the pointer only.
+
+`exportDashboard(selection)` reads the same rectangle the other way: it lifts out the
+widgets that fit *entirely* inside, because a half widget cannot be pasted. Both
+readings are exported as `GridSelectionUtils.overlapsFootprint` and
+`GridSelectionUtils.containsFootprint`, so your own "is this widget in the area" check
+matches the library's.
+
+A sweep below `dragThreshold` counts as a click and drops the marks, the same
+click-vs-drag rule the viewer's selection uses. The gesture is editor-only and
+pointer-based, so mouse, touch and pen all draw a marquee; while one is being drawn
+the widgets go pointer-transparent so the sweep can cross them.
 
 ### Grid Geometry at Runtime
 
