@@ -16,7 +16,10 @@ import {
 
 import { CellComponent } from '../cell/cell.component';
 import { DashboardStore } from '../store/dashboard-store';
-import { GridSelection } from '../models/grid-selection';
+import {
+  GridSelection,
+  GridSelectionUtils,
+} from '../models/grid-selection';
 import { SelectionModifier } from '../models/selection-modifier';
 
 /**
@@ -97,18 +100,15 @@ export class DashboardViewerComponent {
     return this.#modifierHeld() || this.isSelecting();
   });
 
-  // Computed selection bounds (normalized)
-  selectionBounds = computed(() => {
+  // The selection as the library's rectangle, normalized whichever way the
+  // drag went. Already the shape `selectionComplete` emits, so nothing
+  // converts between two vocabularies for one rectangle.
+  selectionBounds = computed<GridSelection | null>(() => {
     const start = this.selectionStart();
     const current = this.selectionCurrent();
     if (!start || !current) return null;
 
-    return {
-      startRow: Math.min(start.row, current.row),
-      endRow: Math.max(start.row, current.row),
-      startCol: Math.min(start.col, current.col),
-      endCol: Math.max(start.col, current.col),
-    };
+    return GridSelectionUtils.fromPoints(start, current);
   });
 
   // Generate array for template iteration
@@ -197,14 +197,7 @@ export class DashboardViewerComponent {
    */
   isCellSelected(row: number, col: number): boolean {
     const bounds = this.selectionBounds();
-    if (!bounds) return false;
-
-    return (
-      row >= bounds.startRow &&
-      row <= bounds.endRow &&
-      col >= bounds.startCol &&
-      col <= bounds.endCol
-    );
+    return bounds !== null && GridSelectionUtils.containsCell(bounds, row, col);
   }
 
   /**
@@ -298,12 +291,7 @@ export class DashboardViewerComponent {
 
     if (moved) {
       const bounds = this.selectionBounds();
-      if (bounds) {
-        this.selectionComplete.emit({
-          topLeft: { row: bounds.startRow, col: bounds.startCol },
-          bottomRight: { row: bounds.endRow, col: bounds.endCol },
-        });
-      }
+      if (bounds) this.selectionComplete.emit(bounds);
     }
 
     this.#pointerDownPos.set(null);

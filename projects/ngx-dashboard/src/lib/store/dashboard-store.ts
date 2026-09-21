@@ -23,13 +23,16 @@ import {
   DragData,
   DashboardDataDto,
   UNKNOWN_WIDGET_TYPEID,
+  AreaClearedEvent,
   WidgetIdUtils,
   GridSelection,
+  GridSelectionUtils,
   GridResizeResult,
   SelectionFilterOptions,
 } from '../models';
 import { withGridConfig } from './features/grid-config.feature';
 import { withWidgetManagement } from './features/widget-management.feature';
+import { withAreaSelection } from './features/area-selection.feature';
 import { withDragDrop } from './features/drag-drop.feature';
 import { withResize, ResizePreviewUtils } from './features/resize.feature';
 import { withGridResize } from './features/grid-resize.feature';
@@ -54,6 +57,7 @@ export const DashboardStore = signalStore(
   })),
   withGridConfig(),
   withWidgetManagement(),
+  withAreaSelection(),
   withResize(),
   withGridResize(),
   withDragDrop(),
@@ -84,29 +88,56 @@ export const DashboardStore = signalStore(
     // limit shown and the limit enforced cannot drift.
     minGridSize: computed(() => minGridSizeFor(store.cells())),
 
-    // Invalid zones (collision detection)
-    invalidHighlightMap: computed(() => {
-      const collisionInfo = calculateCollisionInfo(
+    // One collision pass for the drag in progress. Both the invalid-zone
+    // highlight and the drop-validity answer derive from it, so the preview
+    // and the decision cannot disagree — and `dragover`, which fires
+    // continuously, pays for the scan once rather than twice.
+    dragCollisionInfo: computed(() =>
+      calculateCollisionInfo(
         store.dragData(),
         store.hoveredDropZone(),
         store.cells(),
         store.rows(),
-        store.columns()
-      );
+        store.columns(),
+        store.copyDrag()
+      )
+    ),
 
-      return new Set(collisionInfo.invalidCells);
+    // Widgets the marked area has hold of. Overlap, not containment: the
+    // rectangle answers "what is in this area", and a widget hanging half
+    // out of it is plainly in it. Empty whenever nothing is marked, so
+    // consumers never have to check the rectangle themselves.
+    //
+    // The rectangle is read before `cells()` deliberately: with nothing
+    // marked this depends on the rectangle alone, so an idle editor does not
+    // re-run this — nor the per-widget lookups below it — every time a widget
+    // moves. Hoisting the `cells()` read would quietly undo that.
+    selectedWidgets: computed(() => {
+      const selection = store.areaSelection();
+      if (!selection) return [];
+      return store
+        .cells()
+        .filter((cell) => GridSelectionUtils.overlapsFootprint(selection, cell));
     }),
+  })),
+
+  withComputed((store) => ({
+    // Membership lookup for the cells, which each ask about themselves.
+    selectedWidgetIds: computed(
+      () => new Set(store.selectedWidgets().map((cell) => cell.widgetId))
+    ),
+
+    // What a host shows next to its own "clear" affordance.
+    selectedWidgetCount: computed(() => store.selectedWidgets().length),
+
+    // Invalid zones (collision detection)
+    invalidHighlightMap: computed(
+      () => new Set(store.dragCollisionInfo().invalidCells)
+    ),
 
     // Check if placement would be valid (for drop validation)
     isValidPlacement: computed(() => {
-      const collisionInfo = calculateCollisionInfo(
-        store.dragData(),
-        store.hoveredDropZone(),
-        store.cells(),
-        store.rows(),
-        store.columns()
-      );
-
+      const collisionInfo = store.dragCollisionInfo();
       return !collisionInfo.hasCollisions && !collisionInfo.outOfBounds;
     }),
   })),
@@ -114,51 +145,102 @@ export const DashboardStore = signalStore(
   // Cross-feature methods (need access to multiple features)
   withMethods((store) => ({
     // DROP HANDLING (delegate to drag-drop feature with dependency injection)
+    // The copy flag is read here, before `_handleDrop` ends the drag and
+    // clears it. It comes from the state the drag itself last reported, which
+    // is the only trustworthy source: a `drop` event's own modifier flags can
+    // be stale.
     handleDrop(
       dragData: DragData,
       targetPosition: { row: number; col: number }
     ): boolean {
-      return store._handleDrop(dragData, targetPosition, {
-        cells: store.cells(),
-        rows: store.rows(),
-        columns: store.columns(),
-        dashboardService: store.dashboardService,
-        createWidget: store.createWidget,
-        updateWidgetPosition: store.updateWidgetPosition,
-      });
+      return store._handleDrop(
+        dragData,
+        targetPosition,
+        {
+          cells: store.cells(),
+          rows: store.rows(),
+          columns: store.columns(),
+          dashboardService: store.dashboardService,
+          createWidget: store.createWidget,
+          updateWidgetPosition: store.updateWidgetPosition,
+          duplicateWidget: store.duplicateWidget,
+        },
+        store.copyDrag()
+      );
+    },
+
+    /**
+     * Remove every widget whose footprint overlaps `selection`.
+     *
+     * Returns the event a caller would otherwise have to assemble — the
+     * rectangle plus the count — or null when the area held nothing, so
+     * reporting a clear is `if (event) emit(event)` everywhere. The marked
+     * rectangle is left alone: clearing an area and dropping the selection
+     * are separate decisions, and `deleteSelectedWidgets` is the one that
+     * does both.
+     */
+    clearArea(selection: GridSelection): AreaClearedEvent | null {
+      const removed = store
+        .cells()
+        .filter((cell) => GridSelectionUtils.overlapsFootprint(selection, cell))
+        .map((cell) => cell.widgetId);
+
+      if (removed.length === 0) return null;
+
+      store.removeWidgets(removed);
+      return { selection, removed: removed.length };
     },
 
     // RESIZE METHODS (delegate to resize feature with dependency injection)
-    startResize(cellId: CellId) {
-      store._startResize(cellId, {
-        cells: store.cells(),
-      });
-    },
-
-    updateResizePreview(direction: CellResizeDirection, delta: CellResizeDelta) {
-      store._updateResizePreview(direction, delta, {
-        cells: store.cells(),
-        rows: store.rows(),
-        columns: store.columns(),
-      });
-    },
-
-    endResize(apply: boolean) {
-      store._endResize(apply, {
-        updateWidgetSpan: (
-          cellId: CellId,
-          rowSpan: number,
-          colSpan: number
-        ) => {
-          // Adapter: find widget by cellId and update using widgetId
-          const widget = store
-            .cells()
-            .find((c) => CellIdUtils.equals(c.cellId, cellId));
-          if (widget) {
-            store.updateWidgetSpan(widget.widgetId, rowSpan, colSpan);
-          }
+    startResize(cellId: CellId, fillCopy = false) {
+      store._startResize(
+        cellId,
+        {
+          cells: store.cells(),
         },
-      });
+        fillCopy
+      );
+    },
+
+    updateResizePreview(
+      direction: CellResizeDirection,
+      delta: CellResizeDelta,
+      fillCopy = false
+    ) {
+      store._updateResizePreview(
+        direction,
+        delta,
+        {
+          cells: store.cells(),
+          rows: store.rows(),
+          columns: store.columns(),
+        },
+        fillCopy
+      );
+    },
+
+    endResize(apply: boolean, widgetState?: unknown) {
+      store._endResize(
+        apply,
+        {
+          cells: store.cells(),
+          duplicateWidget: store.duplicateWidget,
+          updateWidgetSpan: (
+            cellId: CellId,
+            rowSpan: number,
+            colSpan: number
+          ) => {
+            // Adapter: find widget by cellId and update using widgetId
+            const widget = store
+              .cells()
+              .find((c) => CellIdUtils.equals(c.cellId, cellId));
+            if (widget) {
+              store.updateWidgetSpan(widget.widgetId, rowSpan, colSpan);
+            }
+          },
+        },
+        widgetState
+      );
     },
 
     // GRID RESIZE (change row/column counts on a populated dashboard)
@@ -305,6 +387,9 @@ export const DashboardStore = signalStore(
       // existing id is preserved so that bridge registration stays stable
       // and Export→Import across dashboards "just works" without requiring
       // consumers to rewrite the id in the file.
+      // A marked area refers to widgets that are about to stop existing.
+      store.clearAreaSelection();
+
       const currentId = store.dashboardId();
       patchState(store, {
         ...(currentId ? {} : { dashboardId: data.dashboardId }),
@@ -329,6 +414,37 @@ export const DashboardStore = signalStore(
   // absolute setGridSize above (siblings in one withMethods block aren't
   // visible to each other).
   withMethods((store) => ({
+    /**
+     * Clear the marked area and drop the selection with it.
+     *
+     * The rectangle goes even when it caught nothing, because the gesture
+     * that asked for this is "delete what I marked" and leaving the marks up
+     * afterwards reads as a failed delete. Removes what `selectedWidgets`
+     * already worked out for this rectangle rather than scanning again.
+     */
+    deleteSelectedWidgets(): AreaClearedEvent | null {
+      const selection = store.areaSelection();
+      if (!selection) return null;
+
+      const removed = store.selectedWidgets().map((cell) => cell.widgetId);
+      store.removeWidgets(removed);
+      store.clearAreaSelection();
+
+      return removed.length > 0 ? { selection, removed: removed.length } : null;
+    },
+
+    /**
+     * Drop every widget, and the marks that pointed at them.
+     *
+     * Overrides the widget feature's method of the same name, which cannot
+     * see the area selection from where it is defined. Keeping the invariant
+     * here means no caller has to remember it.
+     */
+    clearDashboard() {
+      store.clearDashboard();
+      store.clearAreaSelection();
+    },
+
     endGridResize(
       deltaRows: number,
       deltaColumns: number

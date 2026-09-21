@@ -23,6 +23,7 @@ import {
   DashboardDataDto,
   GridConfig,
   GridSelection,
+  AreaClearedEvent,
 } from '@dragonworks/ngx-dashboard';
 import {
   FilePersistenceService,
@@ -130,6 +131,21 @@ export class DashboardComponent {
       // still be switched back on from the FAB while viewing.
       this.showWidgetNames.set(false);
     }
+  }
+
+  /**
+   * Report a cleared region back to the user.
+   *
+   * The library does the deleting; the host owns what the user hears about
+   * it. A count is enough here — an app with undo would stage the removal
+   * from this same event.
+   */
+  onAreaCleared(event: AreaClearedEvent): void {
+    this.snackBar.open(
+      $localize`:@@demo.dashboard.areaCleared:Removed ${event.removed}:count: widgets`,
+      undefined,
+      { duration: 2000 }
+    );
   }
 
   /**

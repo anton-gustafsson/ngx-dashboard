@@ -26,11 +26,14 @@ import { DashboardViewportService } from '../services/dashboard-viewport.service
 import { EmptyCellContextMenuService } from '../services/empty-cell-context-menu.service';
 import { ReservedSpace } from '../models/reserved-space';
 import {
+  AreaClearedEvent,
   CellIdUtils,
+  DEFAULT_COPY_DRAG_MODIFIERS,
   DEFAULT_GRID_SIZE_LIMITS,
   GridConfig,
   GridResizeResult,
   GridSelection,
+  ModifierKey,
   SelectionFilterOptions,
   SelectionModifier,
 } from '../models';
@@ -73,6 +76,20 @@ export class DashboardComponent implements OnChanges {
   dragThreshold = input<number>(4);
 
   /**
+   * Let the user sweep out a region of the editor grid and clear it.
+   *
+   * Off by default: it claims the left-drag on empty cells, which an editor
+   * embedded in a host with its own gesture there may not want to give up.
+   *
+   * The marquee starts on an empty cell — dragging a widget still moves it —
+   * and marks every widget whose footprint the rectangle touches. `Delete`
+   * or `Backspace` clears them, `Escape` drops the marks. Separate from
+   * `enableSelection`, which is the viewer's read-only "hand me a rectangle"
+   * gesture and never deletes anything.
+   */
+  enableAreaSelection = input<boolean>(false);
+
+  /**
    * Optional CSS length for the gutter between cells (e.g. `'0.5em'`).
    *
    * A seed rather than a binding: it pushes into the store when the bound
@@ -110,9 +127,33 @@ export class DashboardComponent implements OnChanges {
    */
   showWidgetNames = input<boolean>(false);
 
+  /**
+   * Modifiers that turn a widget drag into a copy, and a resize-handle drag
+   * into a fill. Any one of them held during the gesture is enough, and both
+   * gestures answer to the same set: to a user they are one gesture.
+   *
+   * Narrow the default when the app binds one of those keys itself — a host
+   * that opens its own menu on `Alt`-drag passes `['ctrl', 'meta']` — and
+   * pass `[]` to turn both copy gestures off entirely.
+   *
+   * Independent of `selectionModifier`, which gates drag-to-select in the
+   * viewer: the two never run at the same time, so one key can serve both.
+   */
+  copyDragModifiers = input<readonly ModifierKey[]>(
+    DEFAULT_COPY_DRAG_MODIFIERS
+  );
+
   // Component outputs
   selectionComplete = output<GridSelection>();
   gridResized = output<GridResizeResult>();
+
+  /**
+   * Widgets were removed by clearing a region — from the keyboard, or from
+   * `clearArea()` / `deleteSelectedWidgets()`. Like every other widget
+   * mutation this is not covered by `gridConfigChanged`, so hook it if you
+   * autosave. Never fires for a clear that removed nothing.
+   */
+  areaCleared = output<AreaClearedEvent>();
 
   /**
    * Emits on any committed geometry change — size or gutter, handle-driven or
@@ -145,6 +186,12 @@ export class DashboardComponent implements OnChanges {
    * bound a host control without restating the defaults.
    */
   readonly gridSizeLimits = this.#store.gridSizeLimits;
+
+  /** The marked editor region, or `null`. See `enableAreaSelection`. */
+  readonly areaSelection = this.#store.areaSelection;
+
+  /** How many widgets the marked region would take with it. */
+  readonly selectedWidgetCount = this.#store.selectedWidgetCount;
 
   // ViewChild references for export/import functionality
   private dashboardEditor = viewChild(DashboardEditorComponent);
@@ -194,6 +241,14 @@ export class DashboardComponent implements OnChanges {
 
     this.#seed(this.showWidgetNames, (showWidgetNames) =>
       this.#store.setShowWidgetNames(showWidgetNames)
+    );
+
+    this.#seed(this.copyDragModifiers, (modifiers) =>
+      this.#store.setCopyDragModifiers(modifiers)
+    );
+
+    this.#seed(this.enableAreaSelection, (enabled) =>
+      this.#store.setAreaSelectionEnabled(enabled)
     );
 
     // Sync reserved space input with viewport service
@@ -311,6 +366,50 @@ export class DashboardComponent implements OnChanges {
   }
 
   /**
+   * Remove every widget whose footprint overlaps `selection`, and report how
+   * many went.
+   *
+   * Overlap, not containment: this is "clear this area", so a widget hanging
+   * half out of the rectangle is cleared too. Contrast
+   * `exportDashboard(selection)`, which lifts out only the widgets that fit
+   * entirely inside. Emits `areaCleared` when anything was removed.
+   *
+   * Independent of `enableAreaSelection` — that input gates the pointer
+   * gesture, not the API — and it leaves any marked region in place, which
+   * `deleteSelectedWidgets()` does not.
+   */
+  clearArea(selection: GridSelection): number {
+    const cleared = this.#store.clearArea(selection);
+    if (cleared) this.areaCleared.emit(cleared);
+    return cleared?.removed ?? 0;
+  }
+
+  /**
+   * Clear the region the user marked, and drop the marks. No-op when nothing
+   * is marked. The keyboard `Delete` in the editor is this method.
+   */
+  deleteSelectedWidgets(): number {
+    const cleared = this.#store.deleteSelectedWidgets();
+    if (cleared) this.areaCleared.emit(cleared);
+    return cleared?.removed ?? 0;
+  }
+
+  /**
+   * Mark a region without a gesture — to preselect one, or to re-mark a
+   * region read earlier from `areaSelection()`. `clearAreaSelection()` drops
+   * the marks again.
+   */
+  selectArea(selection: GridSelection): void {
+    this.#store.setAreaSelection(selection);
+  }
+
+  /** Drop the marked editor region. See also `clearSelection()`, which is
+   *  the viewer's equivalent. */
+  clearAreaSelection(): void {
+    this.#store.clearAreaSelection();
+  }
+
+  /**
    * Resize the dashboard grid to the given row/column counts.
    *
    * Uses a clamp-to-content policy: a size that would push an existing widget
@@ -352,6 +451,11 @@ export class DashboardComponent implements OnChanges {
   /** Commit of a grid-resize handle drag, forwarded from the editor. */
   protected onEditorGridResized(result: GridResizeResult): void {
     this.#emitResize(result);
+  }
+
+  /** Keyboard clear of a marked region, forwarded from the editor. */
+  protected onEditorAreaCleared(event: AreaClearedEvent): void {
+    this.areaCleared.emit(event);
   }
 
   /** A committed size change reaches both outputs; a gutter change only one. */

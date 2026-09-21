@@ -106,6 +106,48 @@ export interface ResizeData {
   originalColSpan: number;
   previewRowSpan: number;
   previewColSpan: number;
+  /**
+   * The copy modifier is held, so this gesture tiles copies across the swept
+   * area instead of resizing the widget. Tracked per-move rather than per-
+   * gesture: the key may be pressed or released at any point during the drag.
+   */
+  fillCopy: boolean;
+}
+
+/**
+ * Where each copy goes when a fill gesture is committed.
+ *
+ * The swept area is packed with whole tiles the size of the source widget,
+ * left-to-right then top-to-bottom, and the slot the source already occupies
+ * is skipped. A remainder too small for another whole tile is left empty
+ * rather than producing a clipped copy.
+ *
+ * No bounds or collision check is needed here: `calculateResizePreview` has
+ * already clamped the preview spans so the swept rectangle is inside the grid
+ * and free of every other widget, and these tiles are all inside it.
+ */
+export function computeFillTargets(
+  resizeData: ResizeData,
+  cell: { row: number; col: number }
+): { row: number; col: number }[] {
+  const tileRows = Math.floor(
+    resizeData.previewRowSpan / resizeData.originalRowSpan
+  );
+  const tileCols = Math.floor(
+    resizeData.previewColSpan / resizeData.originalColSpan
+  );
+
+  const targets: { row: number; col: number }[] = [];
+  for (let r = 0; r < tileRows; r++) {
+    for (let c = 0; c < tileCols; c++) {
+      if (r === 0 && c === 0) continue; // the source stays where it is
+      targets.push({
+        row: cell.row + r * resizeData.originalRowSpan,
+        col: cell.col + c * resizeData.originalColSpan,
+      });
+    }
+  }
+  return targets;
 }
 
 export function calculateResizePreview(

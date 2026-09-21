@@ -10,7 +10,10 @@ export { DashboardComponent } from './lib/dashboard/dashboard.component';
 export { WidgetListComponent } from './lib/widget-list/widget-list.component';
 
 // Dashboard viewer types (for selection feature)
-export type { GridSelection } from './lib/models/grid-selection';
+export type {
+  GridSelection,
+  AreaClearedEvent,
+} from './lib/models/grid-selection';
 export type { GridResizeResult } from './lib/models/grid-resize-result';
 
 // Grid geometry (rows, columns, gutter)
@@ -22,6 +25,10 @@ export {
 } from './lib/models/gutter.utils';
 export type { SelectionFilterOptions } from './lib/models/selection-filter-options';
 export type { SelectionModifier } from './lib/models/selection-modifier';
+
+// Gesture modifier keys
+export type { ModifierKey } from './lib/models/modifier-key';
+export { DEFAULT_COPY_DRAG_MODIFIERS } from './lib/models/drag-modifiers';
 
 // Public Services
 export { DashboardService } from './lib/services/dashboard.service';

@@ -53,11 +53,13 @@ import {
     '[style.grid-row]': 'gridRowStyle()',
     '[style.grid-column]': 'gridColumnStyle()',
     '[class.is-dragging]': 'isDragging()',
+    '[class.is-ghosted]': 'isGhosted()',
     '[class.is-resizing]': 'isResizing()',
     // On the host, not `.cell`: the resize handles are siblings of `.cell`, so
     // a right-click on one would not bubble through it.
     '(contextmenu)': 'onContextMenu($event)',
     '[class.drag-active]': 'isDragActive()',
+    '[class.is-area-selected]': 'isAreaSelected()',
     '[class.flat]': 'flat() === true',
   },
 })
@@ -84,13 +86,21 @@ export class CellComponent {
   resizeStart = output<{
     cellId: CellId;
     direction: CellResizeDirection;
+    /** Copy modifier held: fill the swept area with copies, do not resize. */
+    fillCopy: boolean;
   }>();
   resizeMove = output<{
     cellId: CellId;
     direction: CellResizeDirection;
     delta: CellResizeDelta;
+    fillCopy: boolean;
   }>();
-  resizeEnd = output<{ cellId: CellId; apply: boolean }>();
+  resizeEnd = output<{
+    cellId: CellId;
+    apply: boolean;
+    /** Live state for the copies a fill gesture is about to create. */
+    widgetState?: unknown;
+  }>();
 
   private container = viewChild.required<ElementRef, ViewContainerRef>(
     'container',
@@ -136,6 +146,28 @@ export class CellComponent {
   isDragActive = this.#store.isDragActive;
 
   /**
+   * This cell should be drawn as the hole the widget left behind.
+   *
+   * Separate from `isDragging`, which conflates two things: every lifted cell
+   * forwards pointer events to the drop zones underneath it, but only a move
+   * is actually going somewhere. A copy leaves the original where it is, so
+   * ghosting it would say the wrong thing.
+   */
+  isGhosted = computed(() => this.isDragging() && !this.#store.copyDrag());
+
+  /**
+   * This widget is caught by the marked area, and would go with it.
+   *
+   * Asked of the store rather than pushed down as an input: the answer is
+   * derived from the widget's own footprint against a rectangle neither the
+   * editor nor the viewer makes a decision about, and the cell already reads
+   * the store for the drag and resize state.
+   */
+  protected readonly isAreaSelected = computed(() =>
+    this.#store.selectedWidgetIds().has(this.widgetId())
+  );
+
+  /**
    * Read straight off the store rather than passed down: both the editor and
    * the viewer would otherwise have to forward an input they make no decision
    * about, and the cell already injects the store for `resizeData`.
@@ -150,6 +182,9 @@ export class CellComponent {
 
   /** Last delta actually emitted, used to drop no-op moves. Not reactive. */
   #lastResizeDelta: CellResizeDelta | null = null;
+
+  /** Last fill flag emitted, so a bare modifier press still gets through. */
+  #lastFillCopy = false;
 
   constructor() {
     // widget creation - triggers when factory or state changes
@@ -208,11 +243,27 @@ export class CellComponent {
       'mouseup',
       this.handleResizeEnd.bind(this)
     );
+    // The copy modifier decides whether this gesture resizes or fills, and it
+    // can be pressed after the pointer has stopped moving. Without these,
+    // `mousemove` would be the only way to hear about it and the preview
+    // would sit on the wrong answer until the user jiggled the mouse.
+    const unlistenKeyDown = this.#renderer.listen(
+      'document',
+      'keydown',
+      this.handleResizeModifierChange.bind(this)
+    );
+    const unlistenKeyUp = this.#renderer.listen(
+      'document',
+      'keyup',
+      this.handleResizeModifierChange.bind(this)
+    );
 
     // Store cleanup function for later use
     this.#documentListeners = () => {
       unlistenMove();
       unlistenUp();
+      unlistenKeyDown();
+      unlistenKeyUp();
     };
   }
 
@@ -234,7 +285,10 @@ export class CellComponent {
 
   onDragStart(event: DragEvent): void {
     if (!event.dataTransfer) return;
-    event.dataTransfer.effectAllowed = 'move';
+    // `copyMove` rather than `move`: the copy modifier can be pressed at any
+    // point during the drag, and a drop zone may only set a dropEffect the
+    // source allowed.
+    event.dataTransfer.effectAllowed = 'copyMove';
 
     const cell = {
       cellId: this.cellId(),
@@ -245,7 +299,15 @@ export class CellComponent {
       colSpan: this.colSpan(),
     };
 
-    const content: DragData = { kind: 'cell', content: cell };
+    // Snapshotted here, where the live widget instance is in reach, so a
+    // copy-drop carries what the user can see. Writing it to the store
+    // instead would re-key the cell's `widgetState` input and tear the
+    // widget down mid-gesture.
+    const content: DragData = {
+      kind: 'cell',
+      content: cell,
+      widgetState: this.getCurrentWidgetState(),
+    };
     this.dragStart.emit(content);
 
     event.dataTransfer.setData('text/plain', 'cell'); // helps firefox
@@ -367,8 +429,13 @@ export class CellComponent {
 
     this.resizeDirection.set(direction);
     this.#lastResizeDelta = null;
+    this.#lastFillCopy = this.#store.isCopyGesture(event);
     this.resizeStartPos.set({ x: event.clientX, y: event.clientY });
-    this.resizeStart.emit({ cellId: this.cellId(), direction });
+    this.resizeStart.emit({
+      cellId: this.cellId(),
+      direction,
+      fillCopy: this.#lastFillCopy,
+    });
 
     // Setup document listeners only when actively resizing
     this.setupDocumentListeners();
@@ -401,20 +468,54 @@ export class CellComponent {
           : pxToTracks(event.clientY - startPos.y, cellSize.height),
     };
 
+    const fillCopy = this.#store.isCopyGesture(event);
+
     // Pointer movement is continuous but the span delta is quantised to whole
     // tracks, so most moves resolve to the delta already previewed. Emitting
     // those anyway patches the store with a fresh object every time, which
-    // re-renders every drop zone in the editor for no visible change.
+    // re-renders every drop zone in the editor for no visible change. The
+    // modifier is part of the comparison because pressing it mid-gesture
+    // changes what the preview means without moving the pointer a track.
     const last = this.#lastResizeDelta;
-    if (last && last.columns === delta.columns && last.rows === delta.rows) {
+    if (
+      last &&
+      last.columns === delta.columns &&
+      last.rows === delta.rows &&
+      fillCopy === this.#lastFillCopy
+    ) {
       return;
     }
     this.#lastResizeDelta = delta;
+    this.#lastFillCopy = fillCopy;
 
     this.resizeMove.emit({
       cellId: this.cellId(),
       direction,
       delta,
+      fillCopy,
+    });
+  }
+
+  /**
+   * Re-emit the gesture when only the modifier changed.
+   *
+   * Replays the last delta rather than recomputing one: no pointer movement
+   * has happened, so the span the user is asking for is unchanged and only
+   * its meaning — grow or fill — has flipped.
+   */
+  private handleResizeModifierChange(event: KeyboardEvent): void {
+    const direction = this.resizeDirection();
+    if (!direction) return;
+
+    const fillCopy = this.#store.isCopyGesture(event);
+    if (fillCopy === this.#lastFillCopy) return;
+    this.#lastFillCopy = fillCopy;
+
+    this.resizeMove.emit({
+      cellId: this.cellId(),
+      direction,
+      delta: this.#lastResizeDelta ?? { columns: 0, rows: 0 },
+      fillCopy,
     });
   }
 
@@ -433,9 +534,14 @@ export class CellComponent {
     // Clean up document listeners immediately
     this.#cleanupDocumentListeners();
 
-    this.resizeEnd.emit({ cellId: this.cellId(), apply: true });
+    this.resizeEnd.emit({
+      cellId: this.cellId(),
+      apply: true,
+      widgetState: this.getCurrentWidgetState(),
+    });
     this.resizeDirection.set(null);
     this.#lastResizeDelta = null;
+    this.#lastFillCopy = false;
   }
 
   /**

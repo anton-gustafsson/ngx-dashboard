@@ -18,13 +18,24 @@
 
 :host(.is-dragging) {
   z-index: 100; // While dragging
-  opacity: 0.5;
   pointer-events: none; // Allow drag events to pass through to drop zones
 
   // Ensure content area also doesn't block events during drag
   .content-area {
     pointer-events: none;
   }
+}
+
+// Only a move leaves a hole behind; a copy-drag's original is staying put.
+:host(.is-ghosted) {
+  opacity: 0.5;
+}
+
+// Caught by a marquee selection: this widget goes if the area is cleared.
+// An outline rather than a tint, so the widget's own content still reads.
+:host(.is-area-selected) .cell {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: -1px;
 }
 
 /* Ensure flat-mode cells also become transparent when dragged */

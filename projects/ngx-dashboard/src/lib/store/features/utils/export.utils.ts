@@ -1,4 +1,9 @@
-import { CellData, GridSelection, SelectionFilterOptions } from '../../../models';
+import {
+  CellData,
+  GridSelection,
+  GridSelectionUtils,
+  SelectionFilterOptions,
+} from '../../../models';
 
 /**
  * Result of applying selection filtering to dashboard cells.
@@ -66,16 +71,9 @@ export function applySelectionFilter(
   options: SelectionFilterOptions = {}
 ): SelectionFilterResult {
   // Filter widgets that are completely within the selection bounds
-  const filteredCells = allCells.filter((cell) => {
-    const cellEndRow = cell.row + cell.rowSpan - 1;
-    const cellEndCol = cell.col + cell.colSpan - 1;
-
-    // Widget must be completely within the selection
-    return cell.row >= selection.topLeft.row &&
-           cell.col >= selection.topLeft.col &&
-           cellEndRow <= selection.bottomRight.row &&
-           cellEndCol <= selection.bottomRight.col;
-  });
+  const filteredCells = allCells.filter((cell) =>
+    GridSelectionUtils.containsFootprint(selection, cell)
+  );
 
   // Determine the actual bounds to use
   let actualMinRow: number;

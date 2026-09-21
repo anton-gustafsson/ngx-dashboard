@@ -14,6 +14,19 @@ import { DragData } from '../models';
 import { EMPTY_CELL_CONTEXT_PROVIDER } from '../providers/empty-cell-context';
 import { DashboardService } from '../services/dashboard.service';
 
+/**
+ * A drag passing over a zone, with the modifier intent held at that moment.
+ *
+ * The copy flag travels with the position rather than being read from the
+ * store: it is a property of the event, and the editor is what decides to
+ * commit it.
+ */
+export interface DropZoneHover {
+  row: number;
+  col: number;
+  copy: boolean;
+}
+
 @Component({
   selector: 'lib-drop-zone',
   standalone: true,
@@ -32,13 +45,24 @@ export class DropZoneComponent {
   highlight = input(false);
   highlightInvalid = input(false);
   highlightResize = input(false);
+  /** The resize preview is a copy-fill, not a grow. Styled distinctly. */
+  highlightResizeFill = input(false);
   highlightPreview = input(false);
+  /** This cell lies inside the marked area. */
+  selected = input(false);
   editMode = input(false);
 
   // Outputs
-  dragEnter = output<{ row: number; col: number }>();
+  dragEnter = output<DropZoneHover>();
   dragExit = output<void>();
-  dragOver = output<{ row: number; col: number }>();
+  dragOver = output<DropZoneHover>();
+  /**
+   * No modifiers in the payload, deliberately: a `drop` event's `ctrlKey` and
+   * friends do not reliably reflect the keys actually held (Firefox reports
+   * them stale on `drop`/`drag`/`dragend`, correctly only on the `dragstart`/
+   * `dragenter`/`dragover`/`dragleave` family). The last state seen on
+   * `dragover` is the trustworthy one, and the store already holds it.
+   */
   dragDrop = output<{
     data: DragData;
     target: { row: number; col: number };
@@ -55,13 +79,25 @@ export class DropZoneComponent {
   // Abstract drag state from store
   dragData = computed(() => this.#store.dragData());
 
-  // Computed drop effect based on drag data and validity
-  dropEffect = computed(() => {
+  /**
+   * Cursor feedback for the drag currently over this zone.
+   *
+   * A palette widget is always a copy; a cell is a move unless the copy
+   * modifier is held, which is the only cue the user gets that the original
+   * will be left behind.
+   *
+   * Validity and the copy flag both come from the store rather than this
+   * zone's `highlightInvalid` input. That input is a per-cell answer to a
+   * drag-level question — for a multi-cell widget whose far corner collides,
+   * the hovered anchor is not itself invalid — and it has not been re-bound
+   * yet at the point `dragover` needs an answer.
+   */
+  dropEffect = computed<'none' | 'copy' | 'move'>(() => {
     const data = this.dragData();
-    if (!data || this.highlightInvalid()) {
+    if (!data || !this.#store.isValidPlacement()) {
       return 'none';
     }
-    return data.kind === 'cell' ? 'move' : 'copy';
+    return data.kind === 'widget' || this.#store.copyDrag() ? 'copy' : 'move';
   });
 
   readonly #store = inject(DashboardStore);
@@ -78,18 +114,31 @@ export class DropZoneComponent {
   onDragEnter(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    this.dragEnter.emit({ row: this.row(), col: this.col() });
+    this.dragEnter.emit({
+      row: this.row(),
+      col: this.col(),
+      copy: this.#store.isCopyGesture(event),
+    });
   }
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
 
+    // Emitted before the cursor is set, not after: the editor commits this
+    // position and this copy flag to the store synchronously, and the drop
+    // effect below is read back out of it. Browsers keep firing dragover
+    // while the pointer is held still, so this is also how a modifier
+    // pressed mid-drag reaches the grid.
+    this.dragOver.emit({
+      row: this.row(),
+      col: this.col(),
+      copy: this.#store.isCopyGesture(event),
+    });
+
     if (event.dataTransfer && this.dragData()) {
       event.dataTransfer.dropEffect = this.dropEffect();
     }
-
-    this.dragOver.emit({ row: this.row(), col: this.col() });
   }
 
   onDragLeave(event: DragEvent): void {

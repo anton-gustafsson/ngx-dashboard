@@ -14,8 +14,10 @@
       [editMode]="editMode()"
       [reservedSpace]="dashboardReservedSpace()"
       [enableSelection]="selectMode()"
+      [enableAreaSelection]="editMode()"
       [showWidgetNames]="showWidgetNames()"
       (selectionComplete)="onSelectionComplete($event)"
+      (areaCleared)="onAreaCleared($event)"
     >
     </ngx-dashboard>
   </div>

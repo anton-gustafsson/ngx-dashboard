@@ -1,7 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DropZoneComponent } from '../drop-zone.component';
 import { DashboardStore } from '../../store/dashboard-store';
-import { DragData, CellIdUtils, WidgetIdUtils, WidgetMetadata } from '../../models';
+import {
+  DragData,
+  CellIdUtils,
+  WidgetIdUtils,
+  WidgetMetadata,
+} from '../../models';
 import { DashboardService } from '../../services/dashboard.service';
 import { EMPTY_CELL_CONTEXT_PROVIDER } from '../../providers/empty-cell-context';
 
@@ -118,15 +123,52 @@ describe('DropZoneComponent - Focused Regression Tests', () => {
     it('should return copy drop effect for widget drag data', () => {
       store.startDrag(widgetDragData);
       fixture.detectChanges();
-      
+
       expect(component.dropEffect()).toBe('copy');
     });
 
-    it('should return none drop effect for invalid drops', () => {
-      store.endDrag();
-      fixture.componentRef.setInput('highlightInvalid', true);
+    // The zone translates the event into a payload; committing it to the
+    // store is the editor's job, so the two halves are asserted separately.
+    it('should read the copy modifier off the dragover event', () => {
+      spyOn(component.dragOver, 'emit');
+      store.startDrag(cellDragData);
       fixture.detectChanges();
-      
+
+      const event = new DragEvent('dragover', { ctrlKey: true });
+      Object.defineProperty(event, 'dataTransfer', {
+        value: { dropEffect: 'none' },
+      });
+
+      component.onDragOver(event);
+
+      expect(component.dragOver.emit).toHaveBeenCalledWith({
+        row: 3,
+        col: 4,
+        copy: true,
+      });
+    });
+
+    it('should show the copy cursor once a copy drag is committed', () => {
+      store.startDrag(cellDragData);
+      store.setHoveredDropZone({ row: 3, col: 4 });
+      store.setCopyDrag(true);
+      fixture.detectChanges();
+
+      const dataTransfer = { dropEffect: 'none' };
+      const event = new DragEvent('dragover', { ctrlKey: true });
+      Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+
+      component.onDragOver(event);
+
+      expect(dataTransfer.dropEffect).toBe('copy');
+    });
+
+    it('should return none drop effect for invalid drops', () => {
+      store.setGridConfig({ rows: 4, columns: 4 });
+      store.startDrag(cellDragData);
+      store.setHoveredDropZone({ row: 5, col: 5 });
+      fixture.detectChanges();
+
       expect(component.dropEffect()).toBe('none');
     });
 
@@ -169,7 +211,7 @@ describe('DropZoneComponent - Focused Regression Tests', () => {
       
       component.onDragEnter(event);
       
-      expect(component.dragEnter.emit).toHaveBeenCalledWith({ row: 3, col: 4 });
+      expect(component.dragEnter.emit).toHaveBeenCalledWith({ row: 3, col: 4, copy: false });
     });
 
     it('should emit dragOver with correct row and col data', () => {
@@ -181,7 +223,7 @@ describe('DropZoneComponent - Focused Regression Tests', () => {
       
       component.onDragOver(event);
       
-      expect(component.dragOver.emit).toHaveBeenCalledWith({ row: 3, col: 4 });
+      expect(component.dragOver.emit).toHaveBeenCalledWith({ row: 3, col: 4, copy: false });
     });
 
     it('should emit dragDrop with correct data structure when drag data exists', () => {
@@ -429,8 +471,8 @@ describe('DropZoneComponent - Focused Regression Tests', () => {
       component.onDrop(dropEvent);
       component.onDragLeave(leaveEvent);
       
-      expect(component.dragEnter.emit).toHaveBeenCalledWith({ row: 3, col: 4 });
-      expect(component.dragOver.emit).toHaveBeenCalledWith({ row: 3, col: 4 });
+      expect(component.dragEnter.emit).toHaveBeenCalledWith({ row: 3, col: 4, copy: false });
+      expect(component.dragOver.emit).toHaveBeenCalledWith({ row: 3, col: 4, copy: false });
       expect(component.dragDrop.emit).toHaveBeenCalledWith({
         data: cellDragData,
         target: { row: 3, col: 4 }
