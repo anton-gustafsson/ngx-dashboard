@@ -164,6 +164,31 @@ describe('CellComponent - Resize Functionality', () => {
       });
     });
 
+    it('should fill on the configured modifier, and grow on any other', () => {
+      store.setCopyDragModifiers(['shift']);
+      spyOn(component.resizeStart, 'emit');
+
+      component.onResizeStart(
+        { ...mockMouseEvent, shiftKey: true } as unknown as MouseEvent,
+        'both'
+      );
+      component.onResizeStart(
+        { ...mockMouseEvent, ctrlKey: true } as unknown as MouseEvent,
+        'both'
+      );
+
+      expect(component.resizeStart.emit).toHaveBeenCalledWith({
+        cellId: mockCellId,
+        direction: 'both',
+        fillCopy: true,
+      });
+      expect(component.resizeStart.emit).toHaveBeenCalledWith({
+        cellId: mockCellId,
+        direction: 'both',
+        fillCopy: false,
+      });
+    });
+
     it('should re-emit with the last delta when the modifier is pressed without moving', () => {
       component.onResizeStart(
         mockMouseEvent as unknown as MouseEvent,

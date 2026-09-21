@@ -10,7 +10,11 @@ import {
   CellId,
   CellIdUtils,
   CellData,
+  DEFAULT_COPY_DRAG_MODIFIERS,
   DragData,
+  isCopyDrag,
+  ModifierKey,
+  ModifierKeyState,
   WidgetFactory,
   WidgetId,
 } from '../../models';
@@ -29,12 +33,19 @@ export interface DragDropState {
    * map and the drop cursor all have to agree on it.
    */
   copyDrag: boolean;
+  /**
+   * Which modifier keys turn a drag into a copy, and a resize into a fill.
+   * Host configuration rather than gesture state, so `endDrag` deliberately
+   * leaves it alone.
+   */
+  copyDragModifiers: readonly ModifierKey[];
 }
 
 const initialDragDropState: DragDropState = {
   dragData: null,
   hoveredDropZone: null,
   copyDrag: false,
+  copyDragModifiers: DEFAULT_COPY_DRAG_MODIFIERS,
 };
 
 export const withDragDrop = () =>
@@ -82,6 +93,20 @@ export const withDragDrop = () =>
 
       setCopyDrag(copy: boolean) {
         patchState(store, { copyDrag: copy });
+      },
+
+      /** Rebind the copy gestures. See `DashboardComponent.copyDragModifiers`. */
+      setCopyDragModifiers(modifiers: readonly ModifierKey[]) {
+        patchState(store, { copyDragModifiers: modifiers });
+      },
+
+      /**
+       * Whether an event's modifiers ask for a copy under this dashboard's
+       * configuration. The single place the two halves meet, so no component
+       * can read the keys against the wrong set.
+       */
+      isCopyGesture(event: ModifierKeyState): boolean {
+        return isCopyDrag(event, store.copyDragModifiers());
       },
     })),
 

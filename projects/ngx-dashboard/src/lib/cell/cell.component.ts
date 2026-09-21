@@ -31,7 +31,6 @@ import {
   UNKNOWN_WIDGET_TYPEID,
   CellResizeDirection,
   CellResizeDelta,
-  isCopyDrag,
   pxToTracks,
   resizeCursorClass,
 } from '../models';
@@ -417,7 +416,7 @@ export class CellComponent {
 
     this.resizeDirection.set(direction);
     this.#lastResizeDelta = null;
-    this.#lastFillCopy = isCopyDrag(event);
+    this.#lastFillCopy = this.#store.isCopyGesture(event);
     this.resizeStartPos.set({ x: event.clientX, y: event.clientY });
     this.resizeStart.emit({
       cellId: this.cellId(),
@@ -456,7 +455,7 @@ export class CellComponent {
           : pxToTracks(event.clientY - startPos.y, cellSize.height),
     };
 
-    const fillCopy = isCopyDrag(event);
+    const fillCopy = this.#store.isCopyGesture(event);
 
     // Pointer movement is continuous but the span delta is quantised to whole
     // tracks, so most moves resolve to the delta already previewed. Emitting
@@ -495,7 +494,7 @@ export class CellComponent {
     const direction = this.resizeDirection();
     if (!direction) return;
 
-    const fillCopy = isCopyDrag(event);
+    const fillCopy = this.#store.isCopyGesture(event);
     if (fillCopy === this.#lastFillCopy) return;
     this.#lastFillCopy = fillCopy;
 

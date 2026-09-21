@@ -469,6 +469,7 @@ dashboardReservedSpace = computed((): ReservedSpace => ({
 | `maxRows` | `number` | `64` | Ceiling for any resize. The clamp-to-content floor outranks it, so an imported dashboard never loses widgets |
 | `maxColumns` | `number` | `128` | As above, for columns |
 | `showWidgetNames` | `boolean` | `false` | Corner badge naming each widget's type — a reading aid for crowded grids. A view preference; it is not written to the exported DTO |
+| `copyDragModifiers` | `readonly ModifierKey[]` | `['ctrl', 'meta', 'alt']` | Which modifiers turn a widget drag into a copy and a resize into a fill. Any one of them is enough; `[]` turns both gestures off |
 
 ### Outputs
 
@@ -897,7 +898,7 @@ with container-query arithmetic (`100cqi`), which they break.
 ### Drag Gestures in Edit Mode
 
 Dragging a widget moves it. One modifier, held at any point during the drag, changes
-what the drop does — there is nothing to enable, and nothing to configure:
+what the drop does — there is nothing to enable:
 
 | Held while dragging | Effect |
 | --- | --- |
@@ -933,6 +934,29 @@ The swept area is clamped exactly as a resize would be — it stops at the grid
 edge and at the first neighbouring widget — so every tile lands on free cells.
 Copies carry live state and are independent, the same as a copy-drag. Releasing
 the modifier mid-gesture turns it back into an ordinary resize.
+
+#### Rebinding the modifiers
+
+```html
+<ngx-dashboard [dashboardData]="config" [copyDragModifiers]="['ctrl', 'meta']" />
+```
+
+`copyDragModifiers` takes any of `'ctrl' | 'meta' | 'alt' | 'shift'` and governs
+both gestures at once — an app cannot copy-drag on one key and fill on another,
+because to a user they are the same gesture. Holding any key in the set is
+enough. The default is exported as `DEFAULT_COPY_DRAG_MODIFIERS`.
+
+Narrow the default `['ctrl', 'meta', 'alt']` when your app binds one of those
+keys itself (an `Alt`-drag that opens your own menu, say), and pass `[]` to turn
+both copy gestures off entirely — every drag then moves and every handle drag
+grows. Bind it per dashboard: two dashboards on one page can answer to
+different keys.
+
+Only these four keys are available: a browser reports just these four during a
+drag, and an ordinary letter key cannot be observed at all while a native HTML5
+drag is running. `copyDragModifiers` is independent of `selectionModifier`,
+which gates drag-to-select in the viewer; the two never run at the same time,
+so binding the same key to both is fine.
 
 ### Widget Name Badges
 

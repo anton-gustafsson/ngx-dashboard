@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 
 import { DashboardStore } from '../store/dashboard-store';
-import { DragData, isCopyDrag } from '../models';
+import { DragData } from '../models';
 import { EMPTY_CELL_CONTEXT_PROVIDER } from '../providers/empty-cell-context';
 import { DashboardService } from '../services/dashboard.service';
 
@@ -115,7 +115,7 @@ export class DropZoneComponent {
     this.dragEnter.emit({
       row: this.row(),
       col: this.col(),
-      copy: isCopyDrag(event),
+      copy: this.#store.isCopyGesture(event),
     });
   }
 
@@ -131,7 +131,7 @@ export class DropZoneComponent {
     this.dragOver.emit({
       row: this.row(),
       col: this.col(),
-      copy: isCopyDrag(event),
+      copy: this.#store.isCopyGesture(event),
     });
 
     if (event.dataTransfer && this.dragData()) {

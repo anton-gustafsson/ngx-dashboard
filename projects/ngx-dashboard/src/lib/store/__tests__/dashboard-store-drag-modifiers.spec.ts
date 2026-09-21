@@ -93,6 +93,55 @@ describe('DashboardStore - Copy Drag', () => {
     });
   });
 
+  describe('setCopyDragModifiers', () => {
+    it('defaults to ctrl, cmd and alt', () => {
+      expect(store.copyDragModifiers()).toEqual(['ctrl', 'meta', 'alt']);
+    });
+
+    it('survives endDrag, being configuration rather than gesture state', () => {
+      store.setCopyDragModifiers(['shift']);
+      store.setCopyDrag(true);
+      store.endDrag();
+
+      expect(store.copyDragModifiers()).toEqual(['shift']);
+      expect(store.copyDrag()).toBe(false);
+    });
+  });
+
+  describe('isCopyGesture', () => {
+    /** Only the modifier flags matter; the rest of the event does not. */
+    const held = (modifier: Partial<MouseEvent>) =>
+      ({
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        shiftKey: false,
+        ...modifier,
+      } as MouseEvent);
+
+    it('answers for each modifier of the default set', () => {
+      expect(store.isCopyGesture(held({ ctrlKey: true }))).toBe(true);
+      expect(store.isCopyGesture(held({ metaKey: true }))).toBe(true);
+      expect(store.isCopyGesture(held({ altKey: true }))).toBe(true);
+      expect(store.isCopyGesture(held({ shiftKey: true }))).toBe(false);
+    });
+
+    it('answers for the configured set, and only it', () => {
+      store.setCopyDragModifiers(['shift']);
+
+      expect(store.isCopyGesture(held({ shiftKey: true }))).toBe(true);
+      expect(store.isCopyGesture(held({ ctrlKey: true }))).toBe(false);
+    });
+
+    it('answers no to everything when configured with no modifier', () => {
+      store.setCopyDragModifiers([]);
+
+      expect(
+        store.isCopyGesture(held({ ctrlKey: true, altKey: true }))
+      ).toBe(false);
+    });
+  });
+
   describe('collision under a copy', () => {
     it('treats the source footprint as occupied', () => {
       const widgetId = seedWidget(4, 4, { rowSpan: 2, colSpan: 2 });

@@ -23,6 +23,10 @@ export {
 export type { SelectionFilterOptions } from './lib/models/selection-filter-options';
 export type { SelectionModifier } from './lib/models/selection-modifier';
 
+// Gesture modifier keys
+export type { ModifierKey } from './lib/models/modifier-key';
+export { DEFAULT_COPY_DRAG_MODIFIERS } from './lib/models/drag-modifiers';
+
 // Public Services
 export { DashboardService } from './lib/services/dashboard.service';
 

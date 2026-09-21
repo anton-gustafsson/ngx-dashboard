@@ -27,10 +27,12 @@ import { EmptyCellContextMenuService } from '../services/empty-cell-context-menu
 import { ReservedSpace } from '../models/reserved-space';
 import {
   CellIdUtils,
+  DEFAULT_COPY_DRAG_MODIFIERS,
   DEFAULT_GRID_SIZE_LIMITS,
   GridConfig,
   GridResizeResult,
   GridSelection,
+  ModifierKey,
   SelectionFilterOptions,
   SelectionModifier,
 } from '../models';
@@ -109,6 +111,22 @@ export class DashboardComponent implements OnChanges {
    * signal and binds it.
    */
   showWidgetNames = input<boolean>(false);
+
+  /**
+   * Modifiers that turn a widget drag into a copy, and a resize-handle drag
+   * into a fill. Any one of them held during the gesture is enough, and both
+   * gestures answer to the same set: to a user they are one gesture.
+   *
+   * Narrow the default when the app binds one of those keys itself — a host
+   * that opens its own menu on `Alt`-drag passes `['ctrl', 'meta']` — and
+   * pass `[]` to turn both copy gestures off entirely.
+   *
+   * Independent of `selectionModifier`, which gates drag-to-select in the
+   * viewer: the two never run at the same time, so one key can serve both.
+   */
+  copyDragModifiers = input<readonly ModifierKey[]>(
+    DEFAULT_COPY_DRAG_MODIFIERS
+  );
 
   // Component outputs
   selectionComplete = output<GridSelection>();
@@ -194,6 +212,10 @@ export class DashboardComponent implements OnChanges {
 
     this.#seed(this.showWidgetNames, (showWidgetNames) =>
       this.#store.setShowWidgetNames(showWidgetNames)
+    );
+
+    this.#seed(this.copyDragModifiers, (modifiers) =>
+      this.#store.setCopyDragModifiers(modifiers)
     );
 
     // Sync reserved space input with viewport service

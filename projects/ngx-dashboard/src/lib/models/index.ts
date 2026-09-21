@@ -12,6 +12,7 @@ export * from './grid-config';
 export * from './gutter.utils';
 export * from './grid-selection';
 export * from './grid-resize-result';
+export * from './modifier-key';
 export * from './reserved-space';
 export * from './selection-filter-options';
 export * from './selection-modifier';
