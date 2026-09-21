@@ -19,6 +19,15 @@
   // background-color: var(--mat-sys-surface-dim);
 }
 
+// Cell inside the marquee-selected area. Declared before the drag and resize
+// highlights so that a preview crossing a selection still reads as the thing
+// the user is doing right now.
+.drop-zone--selected {
+  background-color: color-mix(in srgb, var(--mat-sys-primary) 16%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--mat-sys-primary) 45%, transparent);
+  outline-offset: -1px;
+}
+
 .drop-zone--highlight {
   background-color: rgba(128, 128, 128, 0.5);
   // background-color: var(--mat-sys-surface-dim);

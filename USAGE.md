@@ -464,7 +464,8 @@ dashboardReservedSpace = computed((): ReservedSpace => ({
 | `reservedSpace` | `ReservedSpace` | — | Viewport insets, so the grid sizes itself around your own chrome |
 | `enableSelection` | `boolean` | `false` | Mounts the snap-to-grid selection overlay (viewer only) |
 | `selectionModifier` | `SelectionModifier \| null` | `null` | `'shift' \| 'ctrl' \| 'alt' \| 'meta'`. With `null` the overlay is always armed; with a modifier it arms only while that key is held, so widget clicks keep working |
-| `dragThreshold` | `number` | `4` | Minimum pointer travel in CSS pixels before a selection is emitted. `0` restores "every pointerup emits" |
+| `enableAreaSelection` | `boolean` | `false` | Marquee selection in the **editor**: sweep out a region on empty cells and clear it with `Delete`. See [Selecting and clearing an area](#selecting-and-clearing-an-area-edit-mode) |
+| `dragThreshold` | `number` | `4` | Minimum pointer travel in CSS pixels before a selection is emitted. Applies to both selection gestures. `0` restores "every pointerup emits" |
 | `gutterSize` | `string` | — | CSS length for the gutter (`px`/`em`/`rem` only). A seed, not a binding: an invalid value is ignored, and a later `loadDashboard()` still wins |
 | `maxRows` | `number` | `64` | Ceiling for any resize. The clamp-to-content floor outranks it, so an imported dashboard never loses widgets |
 | `maxColumns` | `number` | `128` | As above, for columns |
@@ -478,6 +479,7 @@ dashboardReservedSpace = computed((): ReservedSpace => ({
 | `selectionComplete` | `GridSelection` | A selection gesture ends above `dragThreshold`. The rectangle stays on screen afterwards so you can render confirm UX over it — call `clearSelection()` when done |
 | `gridResized` | `GridResizeResult` | The grid size changes. Carries `clamped`, so you can tell the user they hit a limit |
 | `gridConfigChanged` | `GridConfig` | Any committed geometry change, gutter included. The autosave hook — but every intermediate state of a live editor emits, so debounce |
+| `areaCleared` | `AreaClearedEvent` | Widgets were removed by clearing a region, from the keyboard or from `clearArea()`. Never fires for a clear that removed nothing |
 
 Neither `gridResized` nor `gridConfigChanged` fires for `loadDashboard()`: the host
 initiated that itself.
@@ -500,10 +502,18 @@ dashboard().setGutterSize('1em');               // returns the gutter actually a
 // Selection
 dashboard().clearSelection();                   // drop the rectangle after confirm UX
 
+// Area selection (editor)
+dashboard().clearArea(selection);               // remove every widget the region touches
+dashboard().deleteSelectedWidgets();            // clear what the user marked, drop the marks
+dashboard().selectArea(selection);              // mark a region without a gesture
+dashboard().clearAreaSelection();               // drop the marks only
+
 // Readonly signals
 dashboard().gridConfig();                       // committed geometry, never a drag preview
 dashboard().minGridSize();                      // clamp-to-content floor
 dashboard().gridSizeLimits();                   // ceiling from maxRows / maxColumns
+dashboard().areaSelection();                    // marked editor region, or null
+dashboard().selectedWidgetCount();              // how many widgets it holds
 ```
 
 `exportDashboard(selection, options)` filters to a region. `SelectionFilterOptions`
@@ -865,6 +875,80 @@ Two inputs keep selection from fighting the widgets underneath it:
 
 Selection is pointer-based, so mouse, touch and pen all work. It is viewer-only —
 `editMode` takes precedence.
+
+### Selecting and Clearing an Area (Edit Mode)
+
+Deleting widgets one context menu at a time gets old on a crowded grid. Turn on
+`enableAreaSelection` and the editor lets the user sweep out a region and empty it.
+
+```html
+<ngx-dashboard
+  #dashboard
+  [dashboardData]="config"
+  [editMode]="editMode()"
+  [enableAreaSelection]="editMode()"
+  (areaCleared)="onAreaCleared($event)"
+/>
+```
+
+| Gesture | Effect |
+| --- | --- |
+| Drag from an **empty** cell | Marks the swept rectangle; widgets it touches are outlined |
+| `Delete` / `Backspace` | Removes every marked widget and drops the marks |
+| `Escape` | Drops the marks, keeps the widgets |
+| Click an empty cell | Drops the marks (travel below `dragThreshold` is a click, not a 1×1 area) |
+
+The marquee starts on empty cells only — dragging a widget still moves it, and
+dragging a resize handle still resizes. Once the gesture is running it sweeps freely
+across widgets. A badge above the grid reports how many widgets are marked, which is
+the number `Delete` is about to remove.
+
+**A widget that merely overlaps the rectangle is marked**, not only one that fits
+entirely inside it: this is "clear this area", so a widget hanging half out of the
+region goes too. That differs from `exportDashboard(selection)`, which lifts out only
+the widgets fully contained — it is answering the other question, which widgets can be
+extracted whole.
+
+The keyboard handler ignores events from `input`, `textarea`, `select` and
+`contenteditable` elements, so a host's own fields over the editor keep working.
+
+Off by default: the gesture claims the left-drag on empty cells, which a host with its
+own gesture there may not want to give up.
+
+#### Driving it from the host
+
+Everything the gesture does is also an API, so an app can put a toolbar button and a
+confirm dialog in front of it:
+
+```typescript
+private readonly dashboard = viewChild.required<NgxDashboardComponent>('dashboard');
+
+// The marked region is a signal, so a toolbar button enables itself
+protected readonly canClear = computed(
+  () => this.dashboard().selectedWidgetCount() > 0
+);
+
+async onClearMarked(): Promise<void> {
+  const count = this.dashboard().selectedWidgetCount();
+  if (!(await this.confirm(`Remove ${count} widgets?`))) return;
+
+  this.dashboard().deleteSelectedWidgets(); // clears the region and the marks
+}
+
+// Or act on a region you computed yourself — no gesture, no enableAreaSelection
+onClearTopRow(): void {
+  const removed = this.dashboard().clearArea({
+    topLeft: { row: 1, col: 1 },
+    bottomRight: { row: 1, col: 16 },
+  });
+  this.snackBar.open(`Removed ${removed} widgets`);
+}
+```
+
+`clearArea()` returns the number removed and leaves any marked region alone;
+`deleteSelectedWidgets()` acts on what the user marked and drops the marks with it.
+Both emit `areaCleared` when they removed something. Widget deletion has no other
+output, so this is the event to autosave from.
 
 ### Grid Geometry at Runtime
 

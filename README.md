@@ -64,6 +64,7 @@ Core dashboard library providing the fundamental grid and widget management syst
 - **Grid Geometry API** - Rows, columns, and gutter settable at runtime, with clamp-to-content resizing that never orphans a widget
 - **Cell Components** - Cells resizable on both axes (right, bottom, and corner handles) with live preview, context menus, and dual flat/elevated appearance modes
 - **Cell Selection** - Optional snap-to-grid rectangle selection with modifier-key gating, a click-vs-drag threshold, and pointer support for mouse, touch, and pen
+- **Area Clearing** - Opt-in marquee selection in the editor: sweep out a region, see what it holds, and remove every widget it touches with `Delete`. Also available as an API for a host's own confirm UX
 - **Widget Palette** - Collapsible widget groups, an opt-in search box, and optional per-cell name badges for reading a crowded grid
 - **Widget Family Shared State** - Configuration shared across every instance of a widget type, serialized alongside the dashboard ([detailed docs](docs/widget-shared-state-guide.md))
 - **Extensible Provider System** - Dependency injection-based architecture enabling custom dialog and UI implementations ([detailed docs](docs/provider-system-architecture.md))

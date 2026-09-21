@@ -211,6 +211,12 @@
         <target>Reset to Default</target>
       </segment>
     </unit>
+    <unit id="demo.dashboard.areaCleared">
+      <segment state="initial">
+        <source>Removed <ph id="0" equiv="count" disp="event.removed"/> widgets</source>
+        <target>Removed <ph id="0" equiv="count" disp="event.removed"/> widgets</target>
+      </segment>
+    </unit>
     <unit id="demo.dashboard.cancelSelect">
       <segment state="initial">
         <source>Cancel Zoom</source>
@@ -1553,6 +1559,18 @@
       <segment state="initial">
         <source> Save </source>
         <target> Save </target>
+      </segment>
+    </unit>
+    <unit id="ngx.dashboard.editor.areaSelection.count">
+      <segment state="initial">
+        <source><ph id="0" equiv="INTERPOLATION"/> selected</source>
+        <target><ph id="0" equiv="INTERPOLATION"/> selected</target>
+      </segment>
+    </unit>
+    <unit id="ngx.dashboard.editor.areaSelection.hint">
+      <segment state="initial">
+        <source>Delete to clear · Esc to cancel</source>
+        <target>Delete to clear · Esc to cancel</target>
       </segment>
     </unit>
     <unit id="ngx.dashboard.editor.gridResize.dimensions">

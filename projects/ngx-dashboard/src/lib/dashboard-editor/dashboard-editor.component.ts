@@ -10,6 +10,7 @@ import {
   inject,
   input,
   output,
+  Renderer2,
   viewChild,
   viewChildren,
   afterNextRender,
@@ -35,7 +36,10 @@ import {
   CellData,
   CellResizeDirection,
   CellResizeDelta,
+  AreaClearedEvent,
+  GridPoint,
   GridResizeResult,
+  GridSelectionUtils,
 } from '../models';
 import { DashboardStore } from '../store/dashboard-store';
 
@@ -70,14 +74,24 @@ export class DashboardEditorComponent {
 
   #store = inject(DashboardStore);
   #destroyRef = inject(DestroyRef);
+  #renderer = inject(Renderer2);
   #resizeObserver?: ResizeObserver;
 
   rows = input.required<number>();
   columns = input.required<number>();
   gutterSize = input<string>('1em');
+  /**
+   * Pointer travel, in CSS pixels, below which a marquee gesture counts as a
+   * click and drops the selection instead of marking a 1×1 area. Mirrors the
+   * viewer's input of the same name.
+   */
+  dragThreshold = input<number>(4);
 
   // Emitted when a grid resize handle commits a new size (after clamp-to-content).
   gridResized = output<GridResizeResult>();
+
+  /** A marked area was cleared from the keyboard. */
+  areaCleared = output<AreaClearedEvent>();
 
   // store signals
   cells = this.#store.cells;
@@ -98,6 +112,25 @@ export class DashboardEditorComponent {
   cellDimensions = this.#store.gridCellDimensions;
   gridResizePreview = this.#store.gridResizePreview;
 
+  // Marquee selection of a grid region. The rectangle and what it caught both
+  // live in the store, so the highlight, the badge and the delete all read
+  // the same answer.
+  areaSelection = this.#store.areaSelection;
+  isAreaSelecting = this.#store.isAreaSelecting;
+  selectedWidgetCount = this.#store.selectedWidgetCount;
+
+  /**
+   * Whether a cell is inside the marked area -- four integer comparisons
+   * against the rectangle, the way the viewer answers the same question. A
+   * populated editor asks this once per drop zone per change-detection pass,
+   * and a rectangle does not have to be expanded into a set of cells to be
+   * asked about.
+   */
+  isInArea(row: number, col: number): boolean {
+    const selection = this.areaSelection();
+    return selection !== null && GridSelectionUtils.containsCell(selection, row, col);
+  }
+
   // Effective grid size (live preview when dragging, else committed) — shared
   // from the store so the editor grid, the outer frame and the viewport
   // letterboxing all reflow together. Drives the grid template, aspect-ratio
@@ -108,6 +141,11 @@ export class DashboardEditorComponent {
   // Hide grid resize handles while a widget drag is in progress to avoid
   // conflicting gestures.
   isDragActive = this.#store.isDragActive;
+
+  // Existence of a marked area, not the rectangle itself. The keyboard
+  // listener below is registered off this, and the rectangle is a new object
+  // on every cell the marquee crosses.
+  readonly #hasAreaSelection = computed(() => this.areaSelection() !== null);
 
   // Axes rendered as grid resize handles (right edge, bottom edge, corner).
   protected readonly resizeAxes: GridResizeAxis[] = [
@@ -169,10 +207,31 @@ export class DashboardEditorComponent {
       this.#store.setEditMode(true);
     });
 
+    // Keyboard actions on a marked area. Registered only while something is
+    // marked, so an editor sitting idle adds no per-keystroke work to the
+    // document — the same bargain the viewer's modifier tracking makes.
+    effect((onCleanup) => {
+      if (!this.#hasAreaSelection()) return;
+
+      const offKeyDown = this.#renderer.listen(
+        'document',
+        'keydown',
+        (event: KeyboardEvent) => this.#onAreaSelectionKeyDown(event)
+      );
+
+      onCleanup(() => offKeyDown());
+    });
+
     // Drop any in-progress resize preview if the editor is torn down mid-drag
     // (e.g. editMode toggled off): the store outlives this component, so a
     // stale preview would otherwise render a phantom grid on the next mount.
-    this.#destroyRef.onDestroy(() => this.#store.clearGridResizePreview());
+    // The marked area goes for the same reason: only the editor can act on
+    // it, and the viewer has a selection of its own.
+    this.#destroyRef.onDestroy(() => {
+      this.#store.clearGridResizePreview();
+      this.#store.clearAreaSelection();
+      this.#endGesture();
+    });
   }
 
   #observeGridSize(): void {
@@ -263,6 +322,152 @@ export class DashboardEditorComponent {
   onDragDrop(event: { data: DragData; target: { row: number; col: number } }) {
     this.#store.handleDrop(event.data, event.target);
     // Note: Store handles all validation and error handling internally
+  }
+
+  // -- Area selection ------------------------------------------------------
+  //
+  // Pointer-based rather than mouse-based, so touch and pen draw a marquee
+  // too. One listener on the grid rather than one per cell: the gesture is a
+  // property of the grid, and the cell it started in is already recoverable
+  // from the event. Everything after the press is tracked on the document,
+  // because the pointer leaves that cell immediately and, on touch, is
+  // implicitly captured by it.
+
+  /** Pointer position at gesture start, for the `dragThreshold` check. */
+  #pointerDownPos: { x: number; y: number } | null = null;
+  /** Tears down every listener this gesture registered. */
+  #gestureCleanup?: () => void;
+
+  /**
+   * Start a marquee on the empty cell under the pointer.
+   *
+   * Bound to the drop-zone grid, so widgets -- which live in the sibling
+   * `#top-grid` -- never reach it: "drag a widget to move it, drag the grid
+   * to mark an area" falls out of the layering rather than being a rule this
+   * has to enforce. `preventDefault` keeps the gesture from turning into a
+   * text selection across the editor.
+   */
+  onAreaSelectStart(event: PointerEvent): void {
+    if (!this.#store.areaSelectionEnabled()) return;
+    // Secondary buttons open the context menu instead.
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    const cell = this.#cellFromTarget(event.target);
+    if (!cell) return;
+
+    event.preventDefault();
+    this.#store.startAreaSelection(cell);
+    this.#pointerDownPos = { x: event.clientX, y: event.clientY };
+
+    const offMove = this.#renderer.listen(
+      'document',
+      'pointermove',
+      (e: PointerEvent) => this.#onAreaSelectMove(e)
+    );
+    const offUp = this.#renderer.listen(
+      'document',
+      'pointerup',
+      (e: PointerEvent) => this.#onAreaSelectEnd(e)
+    );
+    // A cancelled pointer (a touch the browser took over for a scroll, a
+    // device disconnected mid-drag) never reports an up. Without this the
+    // gesture would stay open, leaving the editor in its selecting state with
+    // the widgets transparent to the pointer.
+    const offCancel = this.#renderer.listen('document', 'pointercancel', () => {
+      this.#store.clearAreaSelection();
+      this.#endGesture();
+    });
+
+    this.#gestureCleanup = () => {
+      offMove();
+      offUp();
+      offCancel();
+    };
+  }
+
+  /**
+   * Extend the marquee to whichever cell the pointer is over.
+   *
+   * Resolved by hit-testing the point rather than by listening on each cell.
+   * Widgets are transparent to the pointer while a marquee runs (see
+   * `.is-area-selecting` in the stylesheet), so the drop zone underneath one
+   * is what answers, and a drag across a widget keeps extending the rectangle
+   * instead of freezing at the last empty cell.
+   */
+  #onAreaSelectMove(event: PointerEvent): void {
+    const cell = this.#cellFromTarget(
+      document.elementFromPoint(event.clientX, event.clientY)
+    );
+    if (cell) this.#store.updateAreaSelection(cell);
+  }
+
+  /**
+   * Finish the gesture. A pointer that never travelled far enough was a click
+   * on the grid, which drops the selection rather than marking a single cell
+   * -- the same rule the viewer applies, so the two gestures feel alike.
+   */
+  #onAreaSelectEnd(event: PointerEvent): void {
+    const start = this.#pointerDownPos;
+    if (!start) return;
+
+    const moved =
+      Math.hypot(event.clientX - start.x, event.clientY - start.y) >=
+      this.dragThreshold();
+
+    if (moved) {
+      this.#store.endAreaSelection();
+    } else {
+      this.#store.clearAreaSelection();
+    }
+    this.#endGesture();
+  }
+
+  #endGesture(): void {
+    this.#pointerDownPos = null;
+    this.#gestureCleanup?.();
+    this.#gestureCleanup = undefined;
+  }
+
+  /** The grid cell an event target sits in, read off the drop zone it hit. */
+  #cellFromTarget(target: EventTarget | null): GridPoint | null {
+    if (!(target instanceof Element)) return null;
+
+    const zone = target.closest<HTMLElement>('[data-grid-row][data-grid-col]');
+    if (!zone) return null;
+
+    const row = Number(zone.dataset['gridRow']);
+    const col = Number(zone.dataset['gridCol']);
+    return Number.isFinite(row) && Number.isFinite(col) ? { row, col } : null;
+  }
+
+  /**
+   * `Delete` clears the marked area, `Escape` drops the marks.
+   *
+   * Typing is left alone: a host can render its own inputs over the editor
+   * (a rename field, a filter box), and a backspace there must not delete
+   * widgets.
+   */
+  #onAreaSelectionKeyDown(event: KeyboardEvent): void {
+    if (this.#isTextEntry(event.target)) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.#store.clearAreaSelection();
+      return;
+    }
+
+    if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+
+    event.preventDefault();
+    const cleared = this.#store.deleteSelectedWidgets();
+    if (cleared) this.areaCleared.emit(cleared);
+  }
+
+  #isTextEntry(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    if (target.isContentEditable) return true;
+    const tag = target.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
   }
 
   // Live preview while dragging a handle: the store reflows the grid to the

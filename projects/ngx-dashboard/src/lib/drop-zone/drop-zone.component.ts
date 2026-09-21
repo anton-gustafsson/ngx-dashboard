@@ -48,6 +48,8 @@ export class DropZoneComponent {
   /** The resize preview is a copy-fill, not a grow. Styled distinctly. */
   highlightResizeFill = input(false);
   highlightPreview = input(false);
+  /** This cell lies inside the marked area. */
+  selected = input(false);
   editMode = input(false);
 
   // Outputs

@@ -23,13 +23,16 @@ import {
   DragData,
   DashboardDataDto,
   UNKNOWN_WIDGET_TYPEID,
+  AreaClearedEvent,
   WidgetIdUtils,
   GridSelection,
+  GridSelectionUtils,
   GridResizeResult,
   SelectionFilterOptions,
 } from '../models';
 import { withGridConfig } from './features/grid-config.feature';
 import { withWidgetManagement } from './features/widget-management.feature';
+import { withAreaSelection } from './features/area-selection.feature';
 import { withDragDrop } from './features/drag-drop.feature';
 import { withResize, ResizePreviewUtils } from './features/resize.feature';
 import { withGridResize } from './features/grid-resize.feature';
@@ -54,6 +57,7 @@ export const DashboardStore = signalStore(
   })),
   withGridConfig(),
   withWidgetManagement(),
+  withAreaSelection(),
   withResize(),
   withGridResize(),
   withDragDrop(),
@@ -98,9 +102,34 @@ export const DashboardStore = signalStore(
         store.copyDrag()
       )
     ),
+
+    // Widgets the marked area has hold of. Overlap, not containment: the
+    // rectangle answers "what is in this area", and a widget hanging half
+    // out of it is plainly in it. Empty whenever nothing is marked, so
+    // consumers never have to check the rectangle themselves.
+    //
+    // The rectangle is read before `cells()` deliberately: with nothing
+    // marked this depends on the rectangle alone, so an idle editor does not
+    // re-run this — nor the per-widget lookups below it — every time a widget
+    // moves. Hoisting the `cells()` read would quietly undo that.
+    selectedWidgets: computed(() => {
+      const selection = store.areaSelection();
+      if (!selection) return [];
+      return store
+        .cells()
+        .filter((cell) => GridSelectionUtils.overlapsFootprint(selection, cell));
+    }),
   })),
 
   withComputed((store) => ({
+    // Membership lookup for the cells, which each ask about themselves.
+    selectedWidgetIds: computed(
+      () => new Set(store.selectedWidgets().map((cell) => cell.widgetId))
+    ),
+
+    // What a host shows next to its own "clear" affordance.
+    selectedWidgetCount: computed(() => store.selectedWidgets().length),
+
     // Invalid zones (collision detection)
     invalidHighlightMap: computed(
       () => new Set(store.dragCollisionInfo().invalidCells)
@@ -138,6 +167,28 @@ export const DashboardStore = signalStore(
         },
         store.copyDrag()
       );
+    },
+
+    /**
+     * Remove every widget whose footprint overlaps `selection`.
+     *
+     * Returns the event a caller would otherwise have to assemble — the
+     * rectangle plus the count — or null when the area held nothing, so
+     * reporting a clear is `if (event) emit(event)` everywhere. The marked
+     * rectangle is left alone: clearing an area and dropping the selection
+     * are separate decisions, and `deleteSelectedWidgets` is the one that
+     * does both.
+     */
+    clearArea(selection: GridSelection): AreaClearedEvent | null {
+      const removed = store
+        .cells()
+        .filter((cell) => GridSelectionUtils.overlapsFootprint(selection, cell))
+        .map((cell) => cell.widgetId);
+
+      if (removed.length === 0) return null;
+
+      store.removeWidgets(removed);
+      return { selection, removed: removed.length };
     },
 
     // RESIZE METHODS (delegate to resize feature with dependency injection)
@@ -336,6 +387,9 @@ export const DashboardStore = signalStore(
       // existing id is preserved so that bridge registration stays stable
       // and Export→Import across dashboards "just works" without requiring
       // consumers to rewrite the id in the file.
+      // A marked area refers to widgets that are about to stop existing.
+      store.clearAreaSelection();
+
       const currentId = store.dashboardId();
       patchState(store, {
         ...(currentId ? {} : { dashboardId: data.dashboardId }),
@@ -360,6 +414,37 @@ export const DashboardStore = signalStore(
   // absolute setGridSize above (siblings in one withMethods block aren't
   // visible to each other).
   withMethods((store) => ({
+    /**
+     * Clear the marked area and drop the selection with it.
+     *
+     * The rectangle goes even when it caught nothing, because the gesture
+     * that asked for this is "delete what I marked" and leaving the marks up
+     * afterwards reads as a failed delete. Removes what `selectedWidgets`
+     * already worked out for this rectangle rather than scanning again.
+     */
+    deleteSelectedWidgets(): AreaClearedEvent | null {
+      const selection = store.areaSelection();
+      if (!selection) return null;
+
+      const removed = store.selectedWidgets().map((cell) => cell.widgetId);
+      store.removeWidgets(removed);
+      store.clearAreaSelection();
+
+      return removed.length > 0 ? { selection, removed: removed.length } : null;
+    },
+
+    /**
+     * Drop every widget, and the marks that pointed at them.
+     *
+     * Overrides the widget feature's method of the same name, which cannot
+     * see the area selection from where it is defined. Keeping the invariant
+     * here means no caller has to remember it.
+     */
+    clearDashboard() {
+      store.clearDashboard();
+      store.clearAreaSelection();
+    },
+
     endGridResize(
       deltaRows: number,
       deltaColumns: number

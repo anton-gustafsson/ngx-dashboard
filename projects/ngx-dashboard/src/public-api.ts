@@ -10,7 +10,10 @@ export { DashboardComponent } from './lib/dashboard/dashboard.component';
 export { WidgetListComponent } from './lib/widget-list/widget-list.component';
 
 // Dashboard viewer types (for selection feature)
-export type { GridSelection } from './lib/models/grid-selection';
+export type {
+  GridSelection,
+  AreaClearedEvent,
+} from './lib/models/grid-selection';
 export type { GridResizeResult } from './lib/models/grid-resize-result';
 
 // Grid geometry (rows, columns, gutter)

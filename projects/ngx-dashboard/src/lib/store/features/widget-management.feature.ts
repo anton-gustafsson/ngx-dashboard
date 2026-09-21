@@ -103,6 +103,25 @@ export const withWidgetManagement = () =>
         patchState(store, { widgetsById: remaining });
       },
 
+      /**
+       * Remove several widgets in one patch.
+       *
+       * Not a loop over `removeWidget`: that would publish a new `cells()`
+       * array per widget, and every cell, drop zone and collision map
+       * downstream would re-render once per deletion rather than once for
+       * the batch. Unknown ids are ignored, so a caller can pass a list it
+       * derived a moment ago without racing the store.
+       */
+      removeWidgets(widgetIds: readonly WidgetId[]) {
+        if (widgetIds.length === 0) return;
+
+        const remaining = { ...store.widgetsById() };
+        for (const widgetId of widgetIds) {
+          delete remaining[WidgetIdUtils.toString(widgetId)];
+        }
+        patchState(store, { widgetsById: remaining });
+      },
+
       updateWidgetPosition(widgetId: WidgetId, row: number, col: number) {
         const widgetKey = WidgetIdUtils.toString(widgetId);
         const existingWidget = store.widgetsById()[widgetKey];

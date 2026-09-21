@@ -31,6 +31,13 @@
   opacity: 0.5;
 }
 
+// Caught by a marquee selection: this widget goes if the area is cleared.
+// An outline rather than a tint, so the widget's own content still reads.
+:host(.is-area-selected) .cell {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: -1px;
+}
+
 /* Ensure flat-mode cells also become transparent when dragged */
 // :host(.is-dragging) .cell.flat .content-area {
 //   pointer-events: none;

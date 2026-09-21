@@ -59,6 +59,7 @@ import {
     // a right-click on one would not bubble through it.
     '(contextmenu)': 'onContextMenu($event)',
     '[class.drag-active]': 'isDragActive()',
+    '[class.is-area-selected]': 'isAreaSelected()',
     '[class.flat]': 'flat() === true',
   },
 })
@@ -153,6 +154,18 @@ export class CellComponent {
    * ghosting it would say the wrong thing.
    */
   isGhosted = computed(() => this.isDragging() && !this.#store.copyDrag());
+
+  /**
+   * This widget is caught by the marked area, and would go with it.
+   *
+   * Asked of the store rather than pushed down as an input: the answer is
+   * derived from the widget's own footprint against a rectangle neither the
+   * editor nor the viewer makes a decision about, and the cell already reads
+   * the store for the drag and resize state.
+   */
+  protected readonly isAreaSelected = computed(() =>
+    this.#store.selectedWidgetIds().has(this.widgetId())
+  );
 
   /**
    * Read straight off the store rather than passed down: both the editor and

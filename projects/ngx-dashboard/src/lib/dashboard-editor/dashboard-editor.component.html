@@ -1,7 +1,14 @@
 <!-- dashboard-editor.component.html -->
-<div class="grid-container">
-  <!-- Bottom grid with drop zones -->
-  <div class="grid" id="bottom-grid" #bottomGrid>
+<div class="grid-container" [class.is-area-selecting]="isAreaSelecting()">
+  <!-- Bottom grid with drop zones. The marquee listens here rather than on
+       each zone: one listener for a gesture that starts at most once, and
+       widgets never reach it because they render in the sibling #top-grid. -->
+  <div
+    class="grid"
+    id="bottom-grid"
+    #bottomGrid
+    (pointerdown)="onAreaSelectStart($event)"
+  >
     @for (position of dropzonePositions(); track position.id) {
     <lib-drop-zone
       class="drop-zone"
@@ -17,6 +24,7 @@
       "
       [highlightResizeFill]="isResizeFill()"
       [highlightPreview]="isPreviewAdded(position.row, position.col)"
+      [selected]="isInArea(position.row, position.col)"
       [editMode]="true"
       (dragEnter)="onDragEnter($event)"
       (dragExit)="onDragExit()"
@@ -25,6 +33,20 @@
     ></lib-drop-zone>
     }
   </div>
+
+  <!-- What the marked area holds, and what will happen to it. -->
+  @if (areaSelection()) {
+  <div class="area-selection-badge">
+    <span i18n="@@ngx.dashboard.editor.areaSelection.count"
+      >{{ selectedWidgetCount() }} selected</span
+    >
+    <span
+      class="area-selection-badge__hint"
+      i18n="@@ngx.dashboard.editor.areaSelection.hint"
+      >Delete to clear · Esc to cancel</span
+    >
+  </div>
+  }
 
   <!-- Grid resize handles (right edge, bottom edge, bottom-right corner).
        Hidden during a widget drag to avoid conflicting gestures. -->
