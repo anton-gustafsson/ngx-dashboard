@@ -22,8 +22,8 @@ The ngx-dashboard library provides an extensible provider system for handling ri
 
 The occupied half of the grid has a hook of its own, `CELL_CONTEXT_PROVIDER`, which
 hands the widget-cell menu's entries to the host as data. One component can render
-both menus — see
-[Own the Dashboard Right-Click Menus](../cell-context-menu-guide.md).
+both menus — the demo app's **Custom Context Menus** page
+(`projects/demo/src/app/components/context-menus`) does exactly that.
 
 ## Default Behavior
 

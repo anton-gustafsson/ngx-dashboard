@@ -20,9 +20,9 @@ documents the ready-made `WidgetListContextMenuProvider`.
 
 The third hands the widget-cell menu to the host: the library builds its entries,
 actions included, and passes them to `handleCellContext`, which answers `true` to
-render them itself or `false` to fall back to the library's own menu. See
-[Own the Dashboard Right-Click Menus](../cell-context-menu-guide.md), which covers
-both context menus together.
+render them itself or `false` to fall back to the library's own menu. The demo
+app's **Custom Context Menus** page (`projects/demo/src/app/components/context-menus`)
+renders both context menus in one component of its own.
 
 The fourth picks the error view for a cell whose widget type is not registered.
 It is a plain function rather than a provider class, because the only decision
