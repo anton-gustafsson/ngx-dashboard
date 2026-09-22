@@ -5,6 +5,12 @@ import { DashboardStore } from '../../store/dashboard-store';
 import { DashboardService } from '../../services/dashboard.service';
 import { CellContextMenuService } from '../cell-context-menu.service';
 import { CELL_SETTINGS_DIALOG_PROVIDER } from '../../providers/cell-settings-dialog';
+import { CELL_CONTEXT_PROVIDER } from '../../providers/cell-context';
+import type {
+  CellContext,
+  CellContextProvider,
+} from '../../providers/cell-context';
+import type { CellContextMenuItem } from '../../models';
 import {
   CellId,
   CellIdUtils,
@@ -70,6 +76,7 @@ describe('CellComponent - User Scenarios', () => {
   let store: InstanceType<typeof DashboardStore>;
   let mockDashboardService: jasmine.SpyObj<DashboardService>;
   let mockContextMenuService: jasmine.SpyObj<CellContextMenuService>;
+  let mockCellContextProvider: jasmine.SpyObj<CellContextProvider>;
   let mockDialogProvider: jasmine.SpyObj<{ openCellSettings: (data: unknown) => Promise<any> }>;
   let mockRenderer: jasmine.SpyObj<Renderer2>;
 
@@ -95,6 +102,13 @@ describe('CellComponent - User Scenarios', () => {
   beforeEach(async () => {
     mockDashboardService = jasmine.createSpyObj('DashboardService', ['getFactory', 'collectSharedStates', 'restoreSharedStates', 'widgetTypes']);
     mockContextMenuService = jasmine.createSpyObj('CellContextMenuService', ['show']);
+    // Declines by default, like the library's own provider, so the built-in
+    // menu is what the rest of these tests exercise.
+    mockCellContextProvider = jasmine.createSpyObj<CellContextProvider>(
+      'CellContextProvider',
+      ['handleCellContext']
+    );
+    mockCellContextProvider.handleCellContext.and.returnValue(false);
     mockDialogProvider = jasmine.createSpyObj('CellSettingsDialogProvider', ['openCellSettings']);
     mockRenderer = jasmine.createSpyObj('Renderer2', ['listen']);
 
@@ -104,6 +118,7 @@ describe('CellComponent - User Scenarios', () => {
         DashboardStore,
         { provide: DashboardService, useValue: mockDashboardService },
         { provide: CellContextMenuService, useValue: mockContextMenuService },
+        { provide: CELL_CONTEXT_PROVIDER, useValue: mockCellContextProvider },
         { provide: CELL_SETTINGS_DIALOG_PROVIDER, useValue: mockDialogProvider },
         { provide: Renderer2, useValue: mockRenderer },
       ],
@@ -537,6 +552,72 @@ describe('CellComponent - User Scenarios', () => {
 
       // No context menu should appear
       expect(mockContextMenuService.show).not.toHaveBeenCalled();
+      expect(mockCellContextProvider.handleCellContext).not.toHaveBeenCalled();
+    });
+
+    describe('handed to CELL_CONTEXT_PROVIDER', () => {
+      /** The context the provider was handed by the last right-click. */
+      function handedContext(): CellContext {
+        return mockCellContextProvider.handleCellContext.calls.mostRecent()
+          .args[1] as CellContext;
+      }
+
+      /** The entries the provider was handed by the last right-click. */
+      function handedItems(): CellContextMenuItem[] {
+        return mockCellContextProvider.handleCellContext.calls.mostRecent()
+          .args[2] as CellContextMenuItem[];
+      }
+
+      it('should render nothing itself when the provider takes over', () => {
+        mockCellContextProvider.handleCellContext.and.returnValue(true);
+
+        component.onContextMenu(mockMouseEvent as MouseEvent);
+
+        expect(mockCellContextProvider.handleCellContext).toHaveBeenCalled();
+        expect(mockContextMenuService.show).not.toHaveBeenCalled();
+      });
+
+      it('should describe the widget and its footprint in the context', () => {
+        fixture.componentRef.setInput('widgetFactory', mockWidgetFactory);
+        fixture.componentRef.setInput('rowSpan', 2);
+        fixture.componentRef.setInput('colSpan', 4);
+        fixture.detectChanges();
+
+        component.onContextMenu(mockMouseEvent as MouseEvent);
+
+        expect(handedContext()).toEqual({
+          widgetId: mockWidgetId,
+          widgetTypeid: 'test-widget',
+          row: 1,
+          col: 1,
+          rowSpan: 2,
+          colSpan: 4,
+        });
+      });
+
+      it('should report the unknown widget type when no factory resolved', () => {
+        // No widgetFactory input: the cell shows nothing it can name.
+        component.onContextMenu(mockMouseEvent as MouseEvent);
+
+        expect(handedContext().widgetTypeid).toBe(UNKNOWN_WIDGET_TYPEID);
+      });
+
+      it('should hand over entries that perform the library actions', () => {
+        const deleted: WidgetId[] = [];
+        component.delete.subscribe((id) => deleted.push(id));
+
+        component.onContextMenu(mockMouseEvent as MouseEvent);
+
+        const items = handedItems();
+        expect(items.map((item) => (item.divider ? '---' : item.label))).toEqual(
+          ['Edit Widget', 'Settings', '---', 'Delete']
+        );
+
+        const remove = items.at(-1);
+        if (remove?.divider) throw new Error('last entry should be Delete');
+        remove?.action();
+        expect(deleted).toEqual([mockWidgetId]);
+      });
     });
   });
 

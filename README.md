@@ -88,6 +88,7 @@ Interactive demonstration showcasing real-world usage patterns:
 - **Theme System** - Material Design 3 theming with live theme switching and color token extraction
 - **Widget Gallery** - Drag-and-drop widget installation from a grouped, searchable palette
 - **Custom Widgets** - Sparkline and Sparkbar charts with theme-responsive colors, a Temperature widget demonstrating shared state, and a Realtime Gauge built by composition
+- **Context Menus** - Both dashboard right-click menus rendered by the page instead of the library: `CELL_CONTEXT_PROVIDER` hands over the widget menu's entries with the actions that perform them, `EMPTY_CELL_CONTEXT_PROVIDER` leaves the empty-cell entries to be composed, and the page prints the context payload each one received
 - **Custom Error Views** - A board of three cells whose widget types are all missing: `UNKNOWN_WIDGET_RESOLVER` answers with a "withheld" view, a "module not loaded" view, and the library's own default. Each type can be registered and unregistered to watch its cell heal in place
 - **Selection & Zoom** - Rectangle selection driving a non-destructive zoom into a minimal bounding box
 - **Persistence** - localStorage and file system persistence implementations
@@ -152,6 +153,7 @@ Subsystem deep dives live in [`docs/`](docs):
 - [Widget Shared State Guide](docs/widget-shared-state-guide.md) - Sharing configuration across all instances of a widget type
 - [Provider System Architecture](docs/provider-system-architecture.md) - Injection points for dialogs, menus, and persistence
 - [Empty Cell Context Provider](docs/empty-cell-context-provider.md) - Customizing right-click behavior on empty cells
+- [Own the Dashboard Right-Click Menus](cell-context-menu-guide.md) - Rendering the widget-cell and empty-cell menus in the application's own chrome
 - [Release Notes](docs/RELEASE_NOTES.md) - Version history for both libraries
 
 ## 🛠️ Development

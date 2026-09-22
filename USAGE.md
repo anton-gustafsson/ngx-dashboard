@@ -1120,5 +1120,6 @@ constructor() {
 - [Widget System Architecture](docs/widget-system-architecture.md) — registration, factories, and the widget lifecycle
 - [Widget Shared State Guide](docs/widget-shared-state-guide.md) — configuration shared across every instance of a widget type
 - [Provider System Architecture](docs/provider-system-architecture.md) — replacing the built-in dialogs
+- [Own the Dashboard Right-Click Menus](cell-context-menu-guide.md) — both context menus in the app's own chrome
 - [Empty Cell Context Provider](docs/empty-cell-context-provider.md) — right-click behaviour on empty cells
 - Consider implementing custom persistence services for your backend

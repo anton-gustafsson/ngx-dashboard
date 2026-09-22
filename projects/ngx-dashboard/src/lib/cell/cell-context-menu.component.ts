@@ -3,10 +3,8 @@ import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatButtonModule } from '@angular/material/button';
-import {
-  CellContextMenuService,
-  CellContextMenuItem,
-} from './cell-context-menu.service';
+import type { CellContextMenuItem } from '../models';
+import { CellContextMenuService } from './cell-context-menu.service';
 
 @Component({
   selector: 'lib-cell-context-menu',

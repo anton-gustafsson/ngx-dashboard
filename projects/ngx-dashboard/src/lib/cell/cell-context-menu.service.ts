@@ -1,20 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-
-export type CellContextMenuItem =
-  | {
-      label: string;
-      icon?: string;  // Material icon name (e.g., 'edit', 'settings', 'delete')
-      action: () => void;
-      disabled?: boolean;
-      divider?: false;
-    }
-  | {
-      divider: true;
-      label?: never;
-      icon?: never;
-      action?: never;
-      disabled?: never;
-    };
+import type { CellContextMenuItem } from '../models';
 
 @Injectable()
 export class CellContextMenuService {
