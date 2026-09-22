@@ -196,3 +196,14 @@ body {
     text-align: center;
   }
 }
+
+// The Context Menus page draws the dashboard's right-click menus itself. The
+// panel belongs to MatMenu's own template, so it cannot be reached from the
+// page's component styles. The accent outline is what marks the menu as the
+// page's own, and it follows the selected theme colour; the surface stays the
+// Material default, so the menu still looks like it belongs to the app.
+.demo-context-menu.mat-mdc-menu-panel {
+  min-width: 232px;
+  border: 1px solid var(--mat-sys-primary);
+  border-radius: 16px;
+}

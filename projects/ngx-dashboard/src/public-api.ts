@@ -28,6 +28,8 @@ export { DashboardService } from './lib/services/dashboard.service';
 
 // Core Widget Types
 export type { Widget, WidgetMetadata } from './lib/models/widget';
+export type { WidgetId } from './lib/models/widget-id';
+export type { CellPosition } from './lib/models/cell-position';
 export type { WidgetSharedStateProvider } from './lib/models/widget-shared-state-provider';
 
 // Data Transfer Types
@@ -47,6 +49,12 @@ export {
 export { CELL_SETTINGS_DIALOG_PROVIDER } from './lib/providers/cell-settings-dialog/cell-settings-dialog.tokens';
 export { DefaultCellSettingsDialogProvider } from './lib/providers/cell-settings-dialog/default-cell-settings-dialog.provider';
 export { CellSettingsDialogProvider } from './lib/providers/cell-settings-dialog/cell-settings-dialog.provider';
+
+export { CELL_CONTEXT_PROVIDER } from './lib/providers/cell-context/cell-context.tokens';
+export { DefaultCellContextProvider } from './lib/providers/cell-context/default-cell-context.provider';
+export { CellContextProvider } from './lib/providers/cell-context/cell-context.provider';
+export type { CellContext } from './lib/providers/cell-context/cell-context.provider';
+export type { CellContextMenuItem } from './lib/models/cell-context-menu-item';
 
 export { EMPTY_CELL_CONTEXT_PROVIDER } from './lib/providers/empty-cell-context/empty-cell-context.tokens';
 export { DefaultEmptyCellContextProvider } from './lib/providers/empty-cell-context/default-empty-cell-context.provider';

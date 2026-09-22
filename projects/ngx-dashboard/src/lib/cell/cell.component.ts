@@ -31,16 +31,17 @@ import {
   UNKNOWN_WIDGET_TYPEID,
   CellResizeDirection,
   CellResizeDelta,
+  CellContextMenuItem,
+  CellPosition,
   pxToTracks,
   resizeCursorClass,
 } from '../models';
 import { DashboardStore } from '../store/dashboard-store';
 import { CellDisplayData } from '../models';
 import { CELL_SETTINGS_DIALOG_PROVIDER } from '../providers/cell-settings-dialog';
-import {
-  CellContextMenuService,
-  CellContextMenuItem,
-} from './cell-context-menu.service';
+import { CELL_CONTEXT_PROVIDER } from '../providers/cell-context';
+import type { CellContext } from '../providers/cell-context';
+import { CellContextMenuService } from './cell-context-menu.service';
 
 @Component({
   selector: 'lib-cell',
@@ -104,6 +105,12 @@ export class CellComponent {
   readonly #contextMenuService = inject(CellContextMenuService, {
     optional: true,
   });
+  /**
+   * Menu owner for an occupied cell. The root default declines the takeover,
+   * so the library's own menu remains the behavior until an application
+   * registers a provider of its own.
+   */
+  readonly #cellContextProvider = inject(CELL_CONTEXT_PROVIDER);
 
   #widgetRef?: ComponentRef<Widget>;
   /**
@@ -236,16 +243,10 @@ export class CellComponent {
     if (!event.dataTransfer) return;
     event.dataTransfer.effectAllowed = 'move';
 
-    const cell = {
-      cellId: this.cellId(),
-      widgetId: this.widgetId(),
-      row: this.row(),
-      col: this.column(),
-      rowSpan: this.rowSpan(),
-      colSpan: this.colSpan(),
+    const content: DragData = {
+      kind: 'cell',
+      content: { cellId: this.cellId(), ...this.#footprint() },
     };
-
-    const content: DragData = { kind: 'cell', content: cell };
     this.dragStart.emit(content);
 
     event.dataTransfer.setData('text/plain', 'cell'); // helps firefox
@@ -300,8 +301,36 @@ export class CellComponent {
       }
     );
 
+    // The host receives the entries as data, actions included, and renders
+    // them in its own chrome. Declining falls back to the library's menu.
+    const handled = this.#cellContextProvider.handleCellContext(
+      event,
+      this.#cellContext(),
+      items
+    );
+    if (handled) return;
+
     // Position menu at exact mouse coordinates
     this.#contextMenuService.show(event.clientX, event.clientY, items);
+  }
+
+  /** Which widget this cell holds and where it sits, shared by both payloads. */
+  #footprint(): CellPosition & { widgetId: WidgetId } {
+    return {
+      widgetId: this.widgetId(),
+      row: this.row(),
+      col: this.column(),
+      rowSpan: this.rowSpan(),
+      colSpan: this.colSpan(),
+    };
+  }
+
+  /** Identity and footprint of this cell, as handed to the context provider. */
+  #cellContext(): CellContext {
+    return {
+      ...this.#footprint(),
+      widgetTypeid: this.widgetFactory()?.widgetTypeid ?? UNKNOWN_WIDGET_TYPEID,
+    };
   }
 
   canEdit(): boolean {

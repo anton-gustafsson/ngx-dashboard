@@ -1,0 +1,89 @@
+<div class="context-menus-container">
+  <mat-card class="intro-card">
+    <mat-card-header>
+      <mat-card-title i18n="@@demo.contextMenus.title"
+        >Custom Context Menus</mat-card-title
+      >
+      <mat-card-subtitle i18n="@@demo.contextMenus.subtitle"
+        >Both dashboard context menus, rendered by this page instead of the
+        library</mat-card-subtitle
+      >
+    </mat-card-header>
+
+    <mat-card-content>
+      <p i18n="@@demo.contextMenus.explanation">
+        Right-click a widget and <code>CELL_CONTEXT_PROVIDER</code> is asked
+        first. The library hands over the entries it would have shown - Edit
+        Widget, Edit Shared State where the widget has one, Settings, Delete -
+        each carrying the action that performs it, and this page renders them in
+        its own menu. Returning <code>true</code> is what stops the library from
+        drawing anything; returning <code>false</code> would fall back to its
+        menu.
+      </p>
+
+      <p i18n="@@demo.contextMenus.emptyExplanation">
+        Right-click an empty cell and <code>EMPTY_CELL_CONTEXT_PROVIDER</code>
+        is asked instead. That hook hands over no entries - there is no widget
+        to act on - so the page composes its own from the registered widget
+        types and creates the chosen one through the context's
+        <code>createWidget</code> callback. The type added last is repeated at
+        the top: quick-repeat state the page owns, not the library.
+      </p>
+
+      <p i18n="@@demo.contextMenus.styleHint">
+        Both menus are the page's own component, so both carry its outline and
+        name the context they were handed - <code>CellContext</code> or
+        <code>EmptyCellContext</code> - as their heading. "Custom alert" is an
+        entry the library never built, spliced in ahead of the divider that
+        fences off Delete: the entries are data, so the page adds, drops,
+        reorders and regroups them - dividers included.
+      </p>
+
+      <p i18n="@@demo.contextMenus.editModeHint">
+        Neither menu fires outside edit mode. Turn editing off and the browser's
+        own menu comes back.
+      </p>
+
+      <div class="actions">
+        <button matButton="filled" (click)="toggleEditMode()">
+          <mat-icon>{{ editMode() ? "edit_off" : "edit" }}</mat-icon>
+          @if (editMode()) {
+          <span i18n="@@demo.contextMenus.leaveEditMode">Leave edit mode</span>
+          } @else {
+          <span i18n="@@demo.contextMenus.enterEditMode">Enter edit mode</span>
+          }
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="dashboard-wrapper">
+    <ngx-dashboard
+      [dashboardData]="dashboardData"
+      [editMode]="editMode()"
+    ></ngx-dashboard>
+  </div>
+
+  <!-- Rendered once, beside the dashboard: one menu serves both providers. -->
+  <app-demo-context-menu />
+
+  <mat-card class="payload-card">
+    <mat-card-header>
+      <mat-card-title i18n="@@demo.contextMenus.payloadTitle"
+        >Last context received</mat-card-title
+      >
+      <mat-card-subtitle i18n="@@demo.contextMenus.payloadSubtitle"
+        >What the provider was told about the right-click</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-card-content>
+      @if (menuService.lastPayload(); as payload) {
+      <pre class="payload-json">{{ payload.kind }} {{ payload.json }}</pre>
+      } @else {
+      <p i18n="@@demo.contextMenus.payloadEmpty">
+        Right-click the board to see the payload.
+      </p>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

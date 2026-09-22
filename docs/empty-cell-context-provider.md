@@ -20,6 +20,11 @@ The ngx-dashboard library provides an extensible provider system for handling ri
 - [Testing Your Provider](#testing-your-provider)
 - [Troubleshooting](#troubleshooting)
 
+The occupied half of the grid has a hook of its own, `CELL_CONTEXT_PROVIDER`, which
+hands the widget-cell menu's entries to the host as data. One component can render
+both menus — the demo app's **Custom Context Menus** page
+(`projects/demo/src/app/components/context-menus`) does exactly that.
+
 ## Default Behavior
 
 By default, when the dashboard is in **edit mode** and a user right-clicks on an empty cell:

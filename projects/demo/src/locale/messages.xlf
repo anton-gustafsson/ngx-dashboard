@@ -26,6 +26,11 @@
         <source>Colors Overview</source>
       </segment>
     </unit>
+    <unit id="demo.navigation.contextMenus">
+      <segment>
+        <source>Custom Context Menus</source>
+      </segment>
+    </unit>
     <unit id="demo.app.title">
       <segment>
         <source>Dashboard Demo</source>
@@ -811,6 +816,71 @@
         <source>Save</source>
       </segment>
     </unit>
+    <unit id="demo.contextMenus.add">
+      <segment>
+        <source>Add <ph id="0" equiv="WIDGET_NAME" disp="name"/></source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.alert">
+      <segment>
+        <source>Custom alert</source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.editModeHint">
+      <segment>
+        <source> Neither menu fires outside edit mode. Turn editing off and the browser&apos;s own menu comes back. </source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.emptyExplanation">
+      <segment>
+        <source> Right-click an empty cell and <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">EMPTY_CELL_CONTEXT_PROVIDER</pc> is asked instead. That hook hands over no entries - there is no widget to act on - so the page composes its own from the registered widget types and creates the chosen one through the context&apos;s <pc id="1" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">createWidget</pc> callback. The type added last is repeated at the top: quick-repeat state the page owns, not the library. </source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.enterEditMode">
+      <segment>
+        <source>Enter edit mode</source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.explanation">
+      <segment>
+        <source> Right-click a widget and <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">CELL_CONTEXT_PROVIDER</pc> is asked first. The library hands over the entries it would have shown - Edit Widget, Edit Shared State where the widget has one, Settings, Delete - each carrying the action that performs it, and this page renders them in its own menu. Returning <pc id="1" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">true</pc> is what stops the library from drawing anything; returning <pc id="2" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">false</pc> would fall back to its menu. </source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.leaveEditMode">
+      <segment>
+        <source>Leave edit mode</source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.payloadEmpty">
+      <segment>
+        <source> Right-click the board to see the payload. </source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.payloadSubtitle">
+      <segment>
+        <source>What the provider was told about the right-click</source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.payloadTitle">
+      <segment>
+        <source>Last context received</source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.styleHint">
+      <segment>
+        <source> Both menus are the page&apos;s own component, so both carry its outline and name the context they were handed - <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">CellContext</pc> or <pc id="1" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">EmptyCellContext</pc> - as their heading. &quot;Custom alert&quot; is an entry the library never built, spliced in ahead of the divider that fences off Delete: the entries are data, so the page adds, drops, reorders and regroups them - dividers included. </source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.subtitle">
+      <segment>
+        <source>Both dashboard context menus, rendered by this page instead of the library</source>
+      </segment>
+    </unit>
+    <unit id="demo.contextMenus.title">
+      <segment>
+        <source>Custom Context Menus</source>
+      </segment>
+    </unit>
     <unit id="demo.widgets.realtimeGauge.dialog.secondsFormat">
       <segment>
         <source><ph id="0" equiv="INTERPOLATION" disp="value"/>s</source>
@@ -1273,7 +1343,7 @@
     </unit>
     <unit id="ngx.dashboard.widgets.arrow.dialog.opacity">
       <segment>
-        <source> Opacity: <ph id="0" equiv="INTERPOLATION"/>% </source>
+        <source> Opacity: <ph id="0" equiv="INTERPOLATION" disp="{{ formatOpacity(opacity()) }}"/>% </source>
       </segment>
     </unit>
     <unit id="ngx.dashboard.widgets.arrow.dialog.background">
@@ -1298,7 +1368,7 @@
     </unit>
     <unit id="ngx.dashboard.editor.gridResize.dimensions">
       <segment>
-        <source> <ph id="0" equiv="INTERPOLATION"/> × <ph id="1" equiv="INTERPOLATION_1"/> </source>
+        <source> <ph id="0" equiv="INTERPOLATION" disp="{{ preview.columns }}"/> × <ph id="1" equiv="INTERPOLATION_1" disp="{{ preview.rows }}"/> </source>
       </segment>
     </unit>
     <unit id="ngx.dashboard.emptyCellMenu.noWidgets">
@@ -1453,7 +1523,7 @@
     </unit>
     <unit id="ngx.dashboard.widgets.label.dialog.opacity">
       <segment>
-        <source> Opacity: <ph id="0" equiv="INTERPOLATION"/>% </source>
+        <source> Opacity: <ph id="0" equiv="INTERPOLATION" disp="{{ formatOpacity(opacity()) }}"/>% </source>
       </segment>
     </unit>
     <unit id="ngx.dashboard.widgets.label.dialog.background">
@@ -1603,7 +1673,7 @@
     </unit>
     <unit id="ngx.dashboard.cell.resize.dimensions">
       <segment>
-        <source> <ph id="0" equiv="INTERPOLATION"/> × <ph id="1" equiv="INTERPOLATION_1"/> </source>
+        <source> <ph id="0" equiv="INTERPOLATION" disp="{{ resizeData()?.previewColSpan ?? colSpan() }}"/> × <ph id="1" equiv="INTERPOLATION_1" disp="{{ resizeData()?.previewRowSpan ?? rowSpan() }}"/> </source>
       </segment>
     </unit>
     <unit id="ngx.dashboard.cell.menu.edit">
@@ -1643,7 +1713,7 @@
     </unit>
     <unit id="ngx.dashboard.cell.settings.cellId">
       <segment>
-        <source> Cell ID: <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other"><ph id="1" equiv="INTERPOLATION"/></pc></source>
+        <source> Cell ID: <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{ data.id }}"/></pc></source>
       </segment>
     </unit>
     <unit id="ngx.dashboard.cell.settings.mode.normal">

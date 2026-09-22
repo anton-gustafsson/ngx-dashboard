@@ -4,12 +4,13 @@
 
 The ngx-dashboard library implements an **extensible provider pattern** that enables consumers to customize dialog implementations and other UI concerns without modifying the library's core code. This architecture follows SOLID principles and provides maximum flexibility for enterprise applications.
 
-The library ships three customization points:
+The library ships four customization points:
 
 | Token | Contract | Default |
 |-------|----------|---------|
 | `CELL_SETTINGS_DIALOG_PROVIDER` | `CellSettingsDialogProvider` | `DefaultCellSettingsDialogProvider` (Angular Material dialog) |
 | `EMPTY_CELL_CONTEXT_PROVIDER` | `EmptyCellContextProvider` | `DefaultEmptyCellContextProvider` (prevents the browser menu, does nothing else) |
+| `CELL_CONTEXT_PROVIDER` | `CellContextProvider` | `DefaultCellContextProvider` (declines, i.e. the library's own widget-cell menu) |
 | `UNKNOWN_WIDGET_RESOLVER` | `UnknownWidgetResolver` (a function, not a class) | answers `null`, i.e. the library's own error view |
 
 This document covers the first in depth and uses it to illustrate the pattern. The
@@ -17,7 +18,20 @@ second has a guide of its own — see
 [Empty Cell Context Menu Provider](empty-cell-context-provider.md), which also
 documents the ready-made `WidgetListContextMenuProvider`.
 
-The third picks the error view for a cell whose widget type is not registered.
+The third hands the widget-cell menu to the host: the library builds its entries,
+actions included, and passes them to `handleCellContext`, which answers `true` to
+render them itself or `false` to fall back to the library's own menu. The demo
+app's **Custom Context Menus** page (`projects/demo/src/app/components/context-menus`)
+renders both context menus in one component of its own.
+
+The handed-over entries are also the only way to reach Edit Widget, Edit Shared
+State, Settings and Delete: they are implemented on the cell, which is internal.
+A host therefore renders its own chrome around the entries - filtered, reordered,
+relabelled - and calls the `action` each one carries. A future release may expose
+those verbs as an API of their own, so a host can act on a cell without a
+right-click and the cell no longer needs to pass the entries at all.
+
+The fourth picks the error view for a cell whose widget type is not registered.
 It is a plain function rather than a provider class, because the only decision
 it makes is which component to render — see
 [Unresolved widget types](widget-system-architecture.md#unresolved-widget-types).
