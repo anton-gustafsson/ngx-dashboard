@@ -24,6 +24,13 @@ render them itself or `false` to fall back to the library's own menu. The demo
 app's **Custom Context Menus** page (`projects/demo/src/app/components/context-menus`)
 renders both context menus in one component of its own.
 
+The handed-over entries are also the only way to reach Edit Widget, Edit Shared
+State, Settings and Delete: they are implemented on the cell, which is internal.
+A host therefore renders its own chrome around the entries - filtered, reordered,
+relabelled - and calls the `action` each one carries. A future release may expose
+those verbs as an API of their own, so a host can act on a cell without a
+right-click and the cell no longer needs to pass the entries at all.
+
 The fourth picks the error view for a cell whose widget type is not registered.
 It is a plain function rather than a provider class, because the only decision
 it makes is which component to render — see

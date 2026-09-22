@@ -26,6 +26,15 @@ export interface CellContext extends CellPosition {
  * carrying the `action` that performs it - call the action rather than
  * reimplementing Edit, Settings or Delete.
  *
+ * `items` is also the only way to reach those actions. Edit Widget, Edit
+ * Shared State, Settings and Delete are implemented on the cell, which is
+ * internal, so a host renders its own chrome around the entries it was handed
+ * - filtered, reordered, relabelled - rather than performing the work itself.
+ * A future release may expose the verbs as an API of their own, on the
+ * dashboard or on the context, so a host can act on a cell without a
+ * right-click; the cell would then no longer need to hand the entries over,
+ * and `items` becomes sugar for the menu case.
+ *
  * @example
  * ```typescript
  * @Injectable()
